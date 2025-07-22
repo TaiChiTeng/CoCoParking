@@ -1,35 +1,37 @@
-import { _decorator, Component, Node } from 'cc';
-const { ccclass, property } = _decorator;
+import { sys } from 'cc';
 
-@ccclass('SaveManager')
-export class SaveManager extends Component {
+export class SaveManager {
+    private static readonly SAVE_KEY = "parking_game_save";
 
-    private static saveKey = "CocoPark_Save";
-
-    private static soundKey = "CocoPark_SoundEnabled";
-
-    /** 存储音效是否开启 */
-    public static saveSoundEnabled(enabled: boolean): void {}
-
-    /** 读取音效设置，默认 true */
-    public static loadSoundEnabled(): boolean {}
-
-    /** 获取当前存档关卡号，如果不存在返回 null */
-    public static loadCurrentLevel(): number | null {}
-
-    /** 保存当前关卡号 */
-    public static saveCurrentLevel(level: number): void {}
-
-    /** 创建初始存档（level=1） */
-    public static createDefaultSave(): void {}
-
-    start() {
-
+    public static getLevel(): number {
+        let saveString = sys.localStorage.getItem(this.SAVE_KEY);
+        if (saveString) {
+            let saveData = JSON.parse(saveString);
+            return saveData.level || 1; // 默认从第一关开始
+        } else {
+            return 1;
+        }
     }
 
-    update(deltaTime: number) {
-        
+    public static saveLevel(level: number): void {
+        let saveData = { level: level };
+        sys.localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
+    }
+
+    public static getSoundState(): boolean {
+        let saveString = sys.localStorage.getItem(this.SAVE_KEY);
+        if (saveString) {
+            let saveData = JSON.parse(saveString);
+            return saveData.soundEnabled !== undefined ? saveData.soundEnabled : true; // 默认开启音效
+        } else {
+            return true;
+        }
+    }
+
+    public static saveSoundState(enabled: boolean): void {
+        let saveString = sys.localStorage.getItem(this.SAVE_KEY);
+        let saveData = saveString ? JSON.parse(saveString) : {};
+        saveData.soundEnabled = enabled;
+        sys.localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
     }
 }
-
-
