@@ -99,6 +99,10 @@ export class GameManager extends Component {
         }
     }
 
+    public onSettingClose(): void {
+        this.UISetting.active = false;
+    }
+
     // 二次确认界面按钮回调函数
     public onConfirmToMainMenuClick(): void {
         this.UIConfirm.active = false;

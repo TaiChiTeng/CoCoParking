@@ -173,6 +173,21 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
+            <key type="filename">texBtnBlue.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>75,25,151,50</rect>
+                <key>scale9Paddings</key>
+                <rect>75,25,151,50</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
             <key type="filename">texBtnItemBg.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
@@ -420,6 +435,7 @@
                     <filename>texBtnItemBg.png</filename>
                     <filename>texPopUpBg.png</filename>
                     <filename>texPopUpTitleBg.png</filename>
+                    <filename>texBtnBlue.png</filename>
                 </array>
             </struct>
         </map>
