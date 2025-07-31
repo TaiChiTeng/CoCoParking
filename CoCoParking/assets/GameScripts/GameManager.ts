@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, AudioSource } from 'cc';
+import { _decorator, Component, Node, AudioSource, Animation } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('GameManager')
@@ -21,6 +21,21 @@ export class GameManager extends Component {
     @property(AudioSource)
     public audioSource: AudioSource = null;
 
+    @property(Animation)
+    public animMainMenu: Animation = null;
+
+    @property(Animation)
+    public animLevel: Animation = null;
+
+    @property(Animation)
+    public animLevelClear: Animation = null;
+
+    @property(Animation)
+    public animSetting: Animation = null;
+
+    @property(Animation)
+    public animConfirm: Animation = null;
+
     private isSoundOn: boolean = true;
 
     start() {
@@ -35,6 +50,10 @@ export class GameManager extends Component {
         this.UILevelClear.active = false;
         this.UISetting.active = false;
         this.UIConfirm.active = false;
+        // 播放主菜单动画
+        if (this.animMainMenu) {
+            this.animMainMenu.play('AnimShowMainMenu');
+        }
     }
 
     // 显示关卡界面，隐藏其他界面
@@ -44,6 +63,10 @@ export class GameManager extends Component {
         this.UILevelClear.active = false;
         this.UISetting.active = false;
         this.UIConfirm.active = false;
+        // 播放关卡界面动画
+        if (this.animLevel) {
+            this.animLevel.play('AnimShowLevel');
+        }
     }
 
     // 显示通关界面，隐藏其他界面
@@ -53,6 +76,10 @@ export class GameManager extends Component {
         this.UILevelClear.active = true;
         this.UISetting.active = false;
         this.UIConfirm.active = false;
+        // 播放通关界面动画
+        if (this.animLevelClear) {
+            this.animLevelClear.play('AnimShowLevelClear');
+        }
     }
 
     // 主菜单按钮回调函数
@@ -61,7 +88,15 @@ export class GameManager extends Component {
     }
 
     public onMainMenuToSettingClick(): void {
+        //this.UIMainMenu.active = false;
+        //this.UILevel.active = false;
+        //this.UILevelClear.active = false;
         this.UISetting.active = true;
+        //this.UIConfirm.active = false;
+        // 播放设置界面动画
+        if (this.animSetting) {
+            this.animSetting.play('AnimShowSetting');
+        }
     }
 
     // 关卡界面按钮回调函数
@@ -70,7 +105,15 @@ export class GameManager extends Component {
     }
 
     public onLevelToSettingClick(): void {
+        //this.UIMainMenu.active = false;
+        //this.UILevel.active = false;
+        //this.UILevelClear.active = false;
         this.UISetting.active = true;
+        //this.UIConfirm.active = false;
+        // 播放设置界面动画
+        if (this.animSetting) {
+            this.animSetting.play('AnimShowSetting');
+        }
     }
 
     // 通关界面按钮回调函数
@@ -84,11 +127,14 @@ export class GameManager extends Component {
         if (this.UILevel.active) {
             // 如果关卡界面正在显示，则打开二次确认界面
             this.UIConfirm.active = true;
+            // 播放确认界面动画
+            if (this.animConfirm) {
+                this.animConfirm.play('AnimShowConfirm');
+            }
         } else {
-            // 如果关卡界面没有显示，则打开主界面，关闭设置界面
+            // 如果关卡界面没有显示，则主界面是打开着的，直接关闭设置界面
             this.UISetting.active = false;
-            this.UIConfirm.active = false;
-            this.showMainMenuOnly();
+            //this.showMainMenuOnly();
     }
 }
 
