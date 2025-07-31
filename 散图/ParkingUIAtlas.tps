@@ -124,7 +124,7 @@
             <key>data</key>
             <struct type="DataFile">
                 <key>name</key>
-                <filename>../WXMiniPro/CoCoParking/assets/UITextures/UIAtlas.plist</filename>
+                <filename>../CoCoParking/assets/UITextures/UIAtlas.plist</filename>
             </struct>
         </map>
         <key>multiPackMode</key>
@@ -187,6 +187,21 @@
                 <rect>26,26,53,53</rect>
                 <key>scale9Paddings</key>
                 <rect>26,26,53,53</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">texBtnNextLv.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>94,29,187,58</rect>
+                <key>scale9Paddings</key>
+                <rect>94,29,187,58</rect>
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
@@ -356,6 +371,7 @@
                     <filename>texSquareR20.png</filename>
                     <filename>texSquareR25.png</filename>
                     <filename>texBtnTip.png</filename>
+                    <filename>texBtnNextLv.png</filename>
                 </array>
             </struct>
         </map>
