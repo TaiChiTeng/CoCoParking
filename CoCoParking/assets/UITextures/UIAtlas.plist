@@ -4,6 +4,21 @@
     <dict>
         <key>frames</key>
         <dict>
+            <key>texBtnItemBg.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{142,149}</string>
+                <key>spriteSourceSize</key>
+                <string>{142,149}</string>
+                <key>textureRect</key>
+                <string>{{88,508},{142,149}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
             <key>texBtnMoreGame.png</key>
             <dict>
                 <key>aliases</key>
@@ -15,7 +30,7 @@
                 <key>spriteSourceSize</key>
                 <string>{105,105}</string>
                 <key>textureRect</key>
-                <string>{{369,260},{105,105}}</string>
+                <string>{{377,1},{105,105}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -45,9 +60,9 @@
                 <key>spriteSourceSize</key>
                 <string>{104,105}</string>
                 <key>textureRect</key>
-                <string>{{559,88},{104,105}}</string>
+                <string>{{218,698},{104,105}}</string>
                 <key>textureRotated</key>
-                <false/>
+                <true/>
             </dict>
             <key>texBtnSettings.png</key>
             <dict>
@@ -60,7 +75,7 @@
                 <key>spriteSourceSize</key>
                 <string>{104,104}</string>
                 <key>textureRect</key>
-                <string>{{476,367},{104,104}}</string>
+                <string>{{325,698},{104,104}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -75,7 +90,7 @@
                 <key>spriteSourceSize</key>
                 <string>{105,105}</string>
                 <key>textureRect</key>
-                <string>{{476,260},{105,105}}</string>
+                <string>{{377,108},{105,105}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -105,7 +120,7 @@
                 <key>spriteSourceSize</key>
                 <string>{105,105}</string>
                 <key>textureRect</key>
-                <string>{{369,367},{105,105}}</string>
+                <string>{{375,215},{105,105}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -120,7 +135,7 @@
                 <key>spriteSourceSize</key>
                 <string>{80,80}</string>
                 <key>textureRect</key>
-                <string>{{583,195},{80,80}}</string>
+                <string>{{369,322},{80,80}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -135,9 +150,9 @@
                 <key>spriteSourceSize</key>
                 <string>{180,84}</string>
                 <key>textureRect</key>
-                <string>{{377,88},{180,84}}</string>
+                <string>{{232,516},{180,84}}</string>
                 <key>textureRotated</key>
-                <false/>
+                <true/>
             </dict>
             <key>texCarL3.png</key>
             <dict>
@@ -150,7 +165,7 @@
                 <key>spriteSourceSize</key>
                 <string>{280,85}</string>
                 <key>textureRect</key>
-                <string>{{377,1},{280,85}}</string>
+                <string>{{1,334},{280,85}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -165,7 +180,7 @@
                 <key>spriteSourceSize</key>
                 <string>{80,80}</string>
                 <key>textureRect</key>
-                <string>{{583,277},{80,80}}</string>
+                <string>{{369,404},{80,80}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -180,9 +195,9 @@
                 <key>spriteSourceSize</key>
                 <string>{180,84}</string>
                 <key>textureRect</key>
-                <string>{{375,174},{180,84}}</string>
+                <string>{{318,516},{180,84}}</string>
                 <key>textureRotated</key>
-                <false/>
+                <true/>
             </dict>
             <key>texCarR3.png</key>
             <dict>
@@ -195,7 +210,7 @@
                 <key>spriteSourceSize</key>
                 <string>{280,85}</string>
                 <key>textureRect</key>
-                <string>{{1,229},{280,85}}</string>
+                <string>{{1,421},{280,85}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -210,7 +225,7 @@
                 <key>spriteSourceSize</key>
                 <string>{80,80}</string>
                 <key>textureRect</key>
-                <string>{{583,359},{80,80}}</string>
+                <string>{{404,486},{80,80}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -225,7 +240,7 @@
                 <key>spriteSourceSize</key>
                 <string>{84,180}</string>
                 <key>textureRect</key>
-                <string>{{283,229},{84,180}}</string>
+                <string>{{283,334},{84,180}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -240,9 +255,39 @@
                 <key>spriteSourceSize</key>
                 <string>{85,280}</string>
                 <key>textureRect</key>
-                <string>{{1,316},{85,280}}</string>
+                <string>{{1,508},{85,280}}</string>
                 <key>textureRotated</key>
-                <true/>
+                <false/>
+            </dict>
+            <key>texPopUpBg.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{128,128}</string>
+                <key>spriteSourceSize</key>
+                <string>{128,128}</string>
+                <key>textureRect</key>
+                <string>{{88,659},{128,128}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>texPopUpTitleBg.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{359,103}</string>
+                <key>spriteSourceSize</key>
+                <string>{359,103}</string>
+                <key>textureRect</key>
+                <string>{{1,229},{359,103}}</string>
+                <key>textureRotated</key>
+                <false/>
             </dict>
             <key>texSquare.png</key>
             <dict>
@@ -255,7 +300,7 @@
                 <key>spriteSourceSize</key>
                 <string>{64,64}</string>
                 <key>textureRect</key>
-                <string>{{1,403},{64,64}}</string>
+                <string>{{404,568},{64,64}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -270,7 +315,7 @@
                 <key>spriteSourceSize</key>
                 <string>{64,64}</string>
                 <key>textureRect</key>
-                <string>{{67,403},{64,64}}</string>
+                <string>{{431,634},{64,64}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -285,7 +330,7 @@
                 <key>spriteSourceSize</key>
                 <string>{64,64}</string>
                 <key>textureRect</key>
-                <string>{{133,403},{64,64}}</string>
+                <string>{{431,700},{64,64}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -301,9 +346,9 @@
             <key>realTextureFileName</key>
             <string>UIAtlas.png</string>
             <key>size</key>
-            <string>{664,473}</string>
+            <string>{496,803}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:1e6d798d1c01f306455800ba866206e4:8dbff56a54ab0d5c916648d23a3977b7:7280a3afaef54655d3dd21d500305ef3$</string>
+            <string>$TexturePacker:SmartUpdate:2213dd9fe12f403f4a5647fba1dbaf0b:2a9138cac8ef3ea9cd756aa320af44c8:7280a3afaef54655d3dd21d500305ef3$</string>
             <key>textureFileName</key>
             <string>UIAtlas.png</string>
         </dict>

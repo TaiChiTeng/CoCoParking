@@ -173,6 +173,21 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
+            <key type="filename">texBtnItemBg.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>36,37,71,75</rect>
+                <key>scale9Paddings</key>
+                <rect>36,37,71,75</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
             <key type="filename">texBtnMoreGame.png</key>
             <key type="filename">texBtnShare.png</key>
             <key type="filename">texBtnTip.png</key>
@@ -329,6 +344,36 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
+            <key type="filename">texPopUpBg.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>32,32,64,64</rect>
+                <key>scale9Paddings</key>
+                <rect>32,32,64,64</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">texPopUpTitleBg.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>90,26,179,51</rect>
+                <key>scale9Paddings</key>
+                <rect>90,26,179,51</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
             <key type="filename">texSquare.png</key>
             <key type="filename">texSquareR20.png</key>
             <key type="filename">texSquareR25.png</key>
@@ -372,6 +417,9 @@
                     <filename>texSquareR25.png</filename>
                     <filename>texBtnTip.png</filename>
                     <filename>texBtnNextLv.png</filename>
+                    <filename>texBtnItemBg.png</filename>
+                    <filename>texPopUpBg.png</filename>
+                    <filename>texPopUpTitleBg.png</filename>
                 </array>
             </struct>
         </map>
