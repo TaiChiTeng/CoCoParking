@@ -17,6 +17,9 @@ export class Level5Map {
 
     // 汽车数据
     public static CarData: {outerMap: string, sort: number, type: number}[] = [
-        {outerMap: 'U0', sort: 0, type: 3}
+        {outerMap: 'U0', sort: 0, type: 3},
+        {outerMap: 'L1', sort: 0, type: 3},
+        {outerMap: 'L3', sort: 0, type: 3},
+        {outerMap: 'L4', sort: 0, type: 3}
     ];
 }

@@ -20,6 +20,8 @@ export class Level3Map {
         {outerMap: 'U1', sort: 0, type: 3},
         {outerMap: 'U2', sort: 0, type: 3},
         {outerMap: 'U2', sort: 1, type: 3},
-        {outerMap: 'U3', sort: 0, type: 3}
+        {outerMap: 'U3', sort: 0, type: 3},
+        {outerMap: 'L0', sort: 0, type: 2},
+        {outerMap: 'L4', sort: 0, type: 2}
     ];
 }

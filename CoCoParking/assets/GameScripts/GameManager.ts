@@ -52,6 +52,15 @@ export class GameManager extends Component {
     @property(Prefab)
     public itemCarU3: Prefab = null; // 汽车预制3
 
+    @property(Prefab)
+    public itemCarL1: Prefab = null; // 汽车预制L1
+
+    @property(Prefab)
+    public itemCarL2: Prefab = null; // 汽车预制L2
+
+    @property(Prefab)
+    public itemCarL3: Prefab = null; // 汽车预制L3
+
     private isSoundOn: boolean = true;
     private currentLevel: number = 1; // 当前关卡
     private labLv: Label = null; // 关卡文本标签
@@ -311,8 +320,8 @@ export class GameManager extends Component {
             return;
         }
 
-        // 先清除所有现有汽车，但保留nodeU0-nodeU4节点
-        const nodeNames = ['nodeU0', 'nodeU1', 'nodeU2', 'nodeU3', 'nodeU4'];
+        // 先清除所有现有汽车，但保留nodeU0-nodeU4和nodeL0-nodeL5节点
+        const nodeNames = ['nodeU0', 'nodeU1', 'nodeU2', 'nodeU3', 'nodeU4', 'nodeL0', 'nodeL1', 'nodeL2', 'nodeL3', 'nodeL4', 'nodeL5'];
         for (const nodeName of nodeNames) {
             const node = this.nodeCar.getChildByName(nodeName);
             if (node) {
@@ -329,13 +338,19 @@ export class GameManager extends Component {
             return;
         }
 
-        // 用于跟踪每个nodeUx节点下的汽车排序
+        // 用于跟踪每个nodeUx和nodeLx节点下的汽车排序
         const nodeUSortIndex: {[key: string]: number} = {
             'nodeU0': 0,
             'nodeU1': 0,
             'nodeU2': 0,
             'nodeU3': 0,
-            'nodeU4': 0
+            'nodeU4': 0,
+            'nodeL0': 0,
+            'nodeL1': 0,
+            'nodeL2': 0,
+            'nodeL3': 0,
+            'nodeL4': 0,
+            'nodeL5': 0
         };
 
         // 创建汽车
@@ -351,19 +366,40 @@ export class GameManager extends Component {
 
             // 获取对应的汽车预制
             let carPrefab: Prefab = null;
-            switch (type) {
-                case 1:
-                    carPrefab = this.itemCarU1;
-                    break;
-                case 2:
-                    carPrefab = this.itemCarU2;
-                    break;
-                case 3:
-                    carPrefab = this.itemCarU3;
-                    break;
-                default:
-                    console.error(`Invalid car type: ${type}`);
-                    continue;
+            // 根据outerMap和type选择不同系列的预制体
+            if (outerMap.startsWith('U')) {
+                switch (type) {
+                    case 1:
+                        carPrefab = this.itemCarU1;
+                        break;
+                    case 2:
+                        carPrefab = this.itemCarU2;
+                        break;
+                    case 3:
+                        carPrefab = this.itemCarU3;
+                        break;
+                    default:
+                        console.error(`Invalid car type: ${type}`);
+                        continue;
+                }
+            } else if (outerMap.startsWith('L')) {
+                switch (type) {
+                    case 1:
+                        carPrefab = this.itemCarL1;
+                        break;
+                    case 2:
+                        carPrefab = this.itemCarL2;
+                        break;
+                    case 3:
+                        carPrefab = this.itemCarL3;
+                        break;
+                    default:
+                        console.error(`Invalid car type: ${type}`);
+                        continue;
+                }
+            } else {
+                console.error(`Invalid outerMap: ${outerMap}`);
+                continue;
             }
 
             if (!carPrefab) {
