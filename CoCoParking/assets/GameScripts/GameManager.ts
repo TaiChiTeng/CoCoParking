@@ -1,4 +1,5 @@
-import { _decorator, Component, Node, AudioSource, Animation } from 'cc';
+import { _decorator, Component, Node, AudioSource, Animation, Label } from 'cc';
+import { MapData } from './MapData';
 const { ccclass, property } = _decorator;
 
 @ccclass('GameManager')
@@ -37,10 +38,65 @@ export class GameManager extends Component {
     public animConfirm: Animation = null;
 
     private isSoundOn: boolean = true;
+    private currentLevel: number = 1; // 当前关卡
+    private labLv: Label = null; // 关卡文本标签
 
     start() {
         // 初始化时只显示主菜单
         this.showMainMenuOnly();
+
+        // 初始化关卡文本标签引用
+        this.initLevelLabel();
+    }
+
+    // 初始化关卡文本标签引用
+    private initLevelLabel(): void {
+        if (this.UILevel) {
+            const animNode = this.UILevel.getChildByName('AnimNode');
+            if (animNode) {
+                const nodeLv = animNode.getChildByName('nodeLv');
+                if (nodeLv) {
+                    const findlabLv = nodeLv.getChildByName('labLv');
+                    if(findlabLv){
+                        this.labLv = findlabLv.getComponent(Label);
+                        if (!this.labLv) {
+                            console.error('Cannot find Label component on nodeLv');
+                        }
+                    }else {
+                        console.error('Cannot find labLv under nodeLv');
+                    }
+                } else {
+                    console.error('Cannot find nodeLv under AnimNode');
+                }
+            } else {
+                console.error('Cannot find AnimNode under UILevel');
+            }
+        }
+    }
+
+    // 更新关卡文本
+    private updateLevelLabel(level: number): void {
+        if (this.labLv) {
+            // 检查关卡是否超出范围
+            if (level > MapData.getTotalLevels()) {
+                this.labLv.string = "无限关卡";
+            } else {
+                this.labLv.string = `关卡 ${level}`;
+            }
+        } else {
+            console.warn('labLv is not initialized, trying to find it again');
+            // 如果标签未初始化，尝试重新查找
+            this.initLevelLabel();
+            // 再次尝试更新
+            if (this.labLv) {
+                // 检查关卡是否超出范围
+                if (level > MapData.getTotalLevels()) {
+                    this.labLv.string = "无限关卡";
+                } else {
+                    this.labLv.string = `关卡 ${level}`;
+                }
+            }
+        }
     }
 
     // 显示主菜单，隐藏其他界面
@@ -56,6 +112,22 @@ export class GameManager extends Component {
         }
     }
 
+    // 设置当前关卡
+    public setCurrentLevel(level: number): void {
+        if (level >= 1 && level <= MapData.getTotalLevels()) {
+            this.currentLevel = level;
+            console.log(`Current level set to: ${level}`);
+
+            // 更新关卡文本
+            this.updateLevelLabel(level);
+
+            // 当关卡改变时，重新创建地图
+            this.createMap();
+        } else {
+            console.error(`Invalid level: ${level}. Level must be between 1 and ${MapData.getTotalLevels()}`);
+        }
+    }
+
     // 显示关卡界面，隐藏其他界面
     private showLevelOnly(): void {
         this.UIMainMenu.active = false;
@@ -67,6 +139,8 @@ export class GameManager extends Component {
         if (this.animLevel) {
             this.animLevel.play('AnimShowLevel');
         }
+        // 显示关卡时创建地图
+        this.createMap();
     }
 
     // 显示通关界面，隐藏其他界面
@@ -84,15 +158,14 @@ export class GameManager extends Component {
 
     // 主菜单按钮回调函数
     public onMainMenuToLevelClick(): void {
+        // 默认进入第一关
+        this.setCurrentLevel(1);
         this.showLevelOnly();
     }
 
+    // 主菜单打开设置界面，不关闭主菜单
     public onMainMenuToSettingClick(): void {
-        //this.UIMainMenu.active = false;
-        //this.UILevel.active = false;
-        //this.UILevelClear.active = false;
         this.UISetting.active = true;
-        //this.UIConfirm.active = false;
         // 播放设置界面动画
         if (this.animSetting) {
             this.animSetting.play('AnimShowSetting');
@@ -104,12 +177,9 @@ export class GameManager extends Component {
         this.showLevelClearOnly();
     }
 
+    // 关卡界面打开设置界面，不关闭关卡界面
     public onLevelToSettingClick(): void {
-        //this.UIMainMenu.active = false;
-        //this.UILevel.active = false;
-        //this.UILevelClear.active = false;
         this.UISetting.active = true;
-        //this.UIConfirm.active = false;
         // 播放设置界面动画
         if (this.animSetting) {
             this.animSetting.play('AnimShowSetting');
@@ -118,6 +188,15 @@ export class GameManager extends Component {
 
     // 通关界面按钮回调函数
     public onLevelClearToLevelClick(): void {
+        // 进入下一关
+        const nextLevel = this.currentLevel + 1;
+        if (nextLevel <= MapData.getTotalLevels()) {
+            this.setCurrentLevel(nextLevel);
+        } else {
+            // 没有下一关时，设置为超出范围的关卡以显示"无限关卡"
+            this.currentLevel = nextLevel;
+            this.updateLevelLabel(nextLevel);
+        }
         this.showLevelOnly();
     }
 
@@ -134,7 +213,6 @@ export class GameManager extends Component {
         } else {
             // 如果关卡界面没有显示，则主界面是打开着的，直接关闭设置界面
             this.UISetting.active = false;
-            //this.showMainMenuOnly();
     }
 }
 
@@ -158,6 +236,28 @@ export class GameManager extends Component {
 
     public onConfirmCancelClick(): void {
         this.UIConfirm.active = false;
+    }
+
+    // 根据关卡数获取地图数据
+    private getMapDataByLevel(level: number): {MapW: number, MapH: number, Map: number[][]} {
+        return MapData.getMapDataByLevel(level);
+    }
+
+    // 创建地图
+    private createMap() {
+        const mapData = this.getMapDataByLevel(this.currentLevel);
+        const {MapW, MapH, Map} = mapData;
+
+        console.log(`Creating map for level ${this.currentLevel}:`);
+        console.log(`MapW: ${MapW}, MapH: ${MapH}`);
+        console.log('Map data:');
+        for (let i = 0; i < MapH; i++) {
+            console.log(Map[i].join(','));
+        }
+
+        // 这里添加实际创建地图的逻辑
+        // 例如，根据Map数组创建阻挡和可通行区域
+        // 你需要根据游戏的具体实现来编写这部分代码
     }
 
     update(deltaTime: number) {
