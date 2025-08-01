@@ -4,6 +4,9 @@
 （2）根据当前关卡数，获取对应的MapW、MapH、Map[][]。
 （3）根据获取到的MapW、MapH、Map[][]，创建地图。
 （4）地图数据要放在一个单独的文件里，每个关卡对应一个文件，文件名是关卡数比如lv1.ts，放在同一个文件夹下，文件夹名是Map。
+（5）接下来，根据关卡地图数据放置阻挡：
+    比如，如果Map[0][0]是-1，则将UILevel/AnimNode/nodeBlock/texBlock00设置为可见。
+    即，如果Map[i][j]是-1，则将UILevel/AnimNode/nodeBlock/texBlockij设置为可见，其余的都设置为不可见。
 
 地图说明：
 （1）是二维数组Map[i][j]，MapW和MapH分别是i和j的上限。

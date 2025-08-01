@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, AudioSource, Animation, Label } from 'cc';
+import { _decorator, Component, Node, AudioSource, Animation, Label, Sprite } from 'cc';
 import { MapData } from './MapData';
 const { ccclass, property } = _decorator;
 
@@ -36,6 +36,9 @@ export class GameManager extends Component {
 
     @property(Animation)
     public animConfirm: Animation = null;
+
+    @property(Node)
+    public nodeBlock: Node = null; // 阻挡物父节点
 
     private isSoundOn: boolean = true;
     private currentLevel: number = 1; // 当前关卡
@@ -245,6 +248,7 @@ export class GameManager extends Component {
 
     // 创建地图
     private createMap() {
+
         const mapData = this.getMapDataByLevel(this.currentLevel);
         const {MapW, MapH, Map} = mapData;
 
@@ -255,9 +259,36 @@ export class GameManager extends Component {
             console.log(Map[i].join(','));
         }
 
-        // 这里添加实际创建地图的逻辑
-        // 例如，根据Map数组创建阻挡和可通行区域
-        // 你需要根据游戏的具体实现来编写这部分代码
+        // 根据地图数据设置阻挡物可见性
+        if (this.nodeBlock) {
+            // 先隐藏所有阻挡物
+            for (let i = 0; i < this.nodeBlock.children.length; i++) {
+                this.nodeBlock.children[i].active = false;
+            }
+
+            // 根据地图数据显示对应的阻挡物
+            // 假设子节点的顺序与地图单元格的顺序一致 (按行优先)
+            let childIndex = 0;
+            for (let y = 0; y < MapH; y++) {
+                for (let x = 0; x < MapW; x++) {
+                    if (childIndex < this.nodeBlock.children.length) {
+                        // 根据地图数据设置节点可见性
+                        this.nodeBlock.children[childIndex].active = (Map[y][x] === -1);
+                    } else {
+                        console.warn(`No enough block nodes. Missing node for cell (${y}, ${x})`);
+                    }
+                    childIndex++;
+                }
+            }
+
+            // 如果有多余的节点，隐藏它们
+            while (childIndex < this.nodeBlock.children.length) {
+                this.nodeBlock.children[childIndex].active = false;
+                childIndex++;
+            }
+        } else {
+            console.error('nodeBlock is not assigned in GameManager. Please assign the nodeBlock property in the inspector.');
+        }
     }
 
     update(deltaTime: number) {
