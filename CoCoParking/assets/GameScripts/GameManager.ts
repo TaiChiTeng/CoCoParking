@@ -1,5 +1,4 @@
 import { _decorator, Component, Node, AudioSource, Animation, Label, instantiate, Prefab } from 'cc';
-
 import { MapData } from './MapData';
 const { ccclass, property } = _decorator;
 
@@ -380,6 +379,16 @@ export class GameManager extends Component {
                 // 记录该节点下的排序
                 nodeUSortIndex[nodeName]++;
                 console.log(`Created car type ${type} at ${nodeName}, sort: ${sort}`);
+
+                // 为汽车添加点击事件
+                carNode.on(Node.EventType.TOUCH_END, () => {
+                    console.log(`汽车被点击! 父节点: ${parentNode.name}`);
+                }, this);
+
+                // 为汽车添加鼠标点击事件（用于桌面平台）
+                carNode.on(Node.EventType.MOUSE_UP, () => {
+                    console.log(`汽车被点击! 父节点: ${parentNode.name}`);
+                }, this);
             } else {
                 console.error(`Failed to instantiate car prefab for type ${type}`);
             }
