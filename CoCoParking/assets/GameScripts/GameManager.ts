@@ -1,4 +1,5 @@
-import { _decorator, Component, Node, AudioSource, Animation, Label, Sprite } from 'cc';
+import { _decorator, Component, Node, AudioSource, Animation, Label, instantiate, Prefab } from 'cc';
+
 import { MapData } from './MapData';
 const { ccclass, property } = _decorator;
 
@@ -39,6 +40,18 @@ export class GameManager extends Component {
 
     @property(Node)
     public nodeBlock: Node = null; // 阻挡物父节点
+
+    @property(Node)
+    public nodeCar: Node = null; // 汽车父节点
+
+    @property(Prefab)
+    public itemCarU1: Prefab = null; // 汽车预制1
+
+    @property(Prefab)
+    public itemCarU2: Prefab = null; // 汽车预制2
+
+    @property(Prefab)
+    public itemCarU3: Prefab = null; // 汽车预制3
 
     private isSoundOn: boolean = true;
     private currentLevel: number = 1; // 当前关卡
@@ -250,6 +263,9 @@ export class GameManager extends Component {
     private createMap() {
 
         const mapData = this.getMapDataByLevel(this.currentLevel);
+        // 初始化汽车
+        this.initCars();
+
         const {MapW, MapH, Map} = mapData;
 
         console.log(`Creating map for level ${this.currentLevel}:`);
@@ -289,6 +305,92 @@ export class GameManager extends Component {
         } else {
             console.error('nodeBlock is not assigned in GameManager. Please assign the nodeBlock property in the inspector.');
         }
+    }
+
+    // 初始化汽车
+    private initCars() {
+        if (!this.nodeCar) {
+            console.error('nodeCar is not assigned in GameManager. Please assign the nodeCar property in the inspector.');
+            return;
+        }
+
+        // 先清除所有现有汽车，但保留nodeU0-nodeU4节点
+        const nodeNames = ['nodeU0', 'nodeU1', 'nodeU2', 'nodeU3', 'nodeU4'];
+        for (const nodeName of nodeNames) {
+            const node = this.nodeCar.getChildByName(nodeName);
+            if (node) {
+                node.removeAllChildren();
+            } else {
+                console.warn(`Cannot find node ${nodeName} under nodeCar`);
+            }
+        }
+
+        // 获取当前关卡的汽车数据
+        const carData = this.getCarDataByLevel(this.currentLevel);
+        if (!carData || carData.length === 0) {
+            console.log(`No car data for level ${this.currentLevel}`);
+            return;
+        }
+
+        // 用于跟踪每个nodeUx节点下的汽车排序
+        const nodeUSortIndex: {[key: string]: number} = {
+            'nodeU0': 0,
+            'nodeU1': 0,
+            'nodeU2': 0,
+            'nodeU3': 0,
+            'nodeU4': 0
+        };
+
+        // 创建汽车
+        for (const car of carData) {
+            const {outerMap, sort, type} = car;
+            const nodeName = `node${outerMap}`; // 例如: nodeU0
+            const parentNode = this.nodeCar.getChildByName(nodeName);
+
+            if (!parentNode) {
+                console.error(`Cannot find parent node: ${nodeName} under nodeCar`);
+                continue;
+            }
+
+            // 获取对应的汽车预制
+            let carPrefab: Prefab = null;
+            switch (type) {
+                case 1:
+                    carPrefab = this.itemCarU1;
+                    break;
+                case 2:
+                    carPrefab = this.itemCarU2;
+                    break;
+                case 3:
+                    carPrefab = this.itemCarU3;
+                    break;
+                default:
+                    console.error(`Invalid car type: ${type}`);
+                    continue;
+            }
+
+            if (!carPrefab) {
+                console.error(`Car prefab for type ${type} is not assigned`);
+                continue;
+            }
+
+            // 创建汽车实例
+            const carNode = instantiate(carPrefab);
+            if (carNode) {
+                // 设置父节点
+                parentNode.addChild(carNode);
+                // 记录该节点下的排序
+                nodeUSortIndex[nodeName]++;
+                console.log(`Created car type ${type} at ${nodeName}, sort: ${sort}`);
+            } else {
+                console.error(`Failed to instantiate car prefab for type ${type}`);
+            }
+        }
+    }
+
+    // 根据关卡获取汽车数据
+    private getCarDataByLevel(level: number): {outerMap: string, sort: number, type: number}[] {
+        return MapData.getCarDataByLevel(level);
     }
 
     update(deltaTime: number) {

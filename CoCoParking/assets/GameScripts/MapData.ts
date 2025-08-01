@@ -35,6 +35,18 @@ export class MapData {
         };
     }
 
+    // 根据关卡数获取汽车数据
+    public static getCarDataByLevel(level: number): {outerMap: string, sort: number, type: number}[] {
+        // 确保关卡数在有效范围内
+        if (level < 1 || level > this.getTotalLevels()) {
+            console.error(`Invalid level: ${level}, using level 1 instead.`);
+            level = 1;
+        }
+
+        const LevelMapClass = this.levelMapClasses[level];
+        return LevelMapClass.CarData || [];
+    }
+
     // 获取关卡总数
     public static getTotalLevels(): number {
         return Object.keys(this.levelMapClasses).length;
