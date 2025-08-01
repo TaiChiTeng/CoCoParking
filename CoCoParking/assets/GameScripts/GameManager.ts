@@ -155,8 +155,6 @@ export class GameManager extends Component {
         if (this.animLevel) {
             this.animLevel.play('AnimShowLevel');
         }
-        // 显示关卡时创建地图
-        this.createMap();
     }
 
     // 显示通关界面，隐藏其他界面
