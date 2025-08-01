@@ -61,6 +61,15 @@ export class GameManager extends Component {
     @property(Prefab)
     public itemCarL3: Prefab = null; // 汽车预制L3
 
+    @property(Prefab)
+    public itemCarR1: Prefab = null; // 汽车预制R1
+
+    @property(Prefab)
+    public itemCarR2: Prefab = null; // 汽车预制R2
+
+    @property(Prefab)
+    public itemCarR3: Prefab = null; // 汽车预制R3
+
     private isSoundOn: boolean = true;
     private currentLevel: number = 1; // 当前关卡
     private labLv: Label = null; // 关卡文本标签
@@ -320,8 +329,8 @@ export class GameManager extends Component {
             return;
         }
 
-        // 先清除所有现有汽车，但保留nodeU0-nodeU4和nodeL0-nodeL5节点
-        const nodeNames = ['nodeU0', 'nodeU1', 'nodeU2', 'nodeU3', 'nodeU4', 'nodeL0', 'nodeL1', 'nodeL2', 'nodeL3', 'nodeL4', 'nodeL5'];
+        // 先清除所有现有汽车，但保留nodeU0-nodeU4、nodeL0-nodeL5和nodeR0-nodeR5节点
+        const nodeNames = ['nodeU0', 'nodeU1', 'nodeU2', 'nodeU3', 'nodeU4', 'nodeL0', 'nodeL1', 'nodeL2', 'nodeL3', 'nodeL4', 'nodeL5', 'nodeR0', 'nodeR1', 'nodeR2', 'nodeR3', 'nodeR4', 'nodeR5'];
         for (const nodeName of nodeNames) {
             const node = this.nodeCar.getChildByName(nodeName);
             if (node) {
@@ -338,7 +347,7 @@ export class GameManager extends Component {
             return;
         }
 
-        // 用于跟踪每个nodeUx和nodeLx节点下的汽车排序
+        // 用于跟踪每个nodeUx、nodeLx和nodeRx节点下的汽车排序
         const nodeUSortIndex: {[key: string]: number} = {
             'nodeU0': 0,
             'nodeU1': 0,
@@ -350,7 +359,13 @@ export class GameManager extends Component {
             'nodeL2': 0,
             'nodeL3': 0,
             'nodeL4': 0,
-            'nodeL5': 0
+            'nodeL5': 0,
+            'nodeR0': 0,
+            'nodeR1': 0,
+            'nodeR2': 0,
+            'nodeR3': 0,
+            'nodeR4': 0,
+            'nodeR5': 0
         };
 
         // 创建汽车
@@ -392,6 +407,21 @@ export class GameManager extends Component {
                         break;
                     case 3:
                         carPrefab = this.itemCarL3;
+                        break;
+                    default:
+                        console.error(`Invalid car type: ${type}`);
+                        continue;
+                }
+            } else if (outerMap.startsWith('R')) {
+                switch (type) {
+                    case 1:
+                        carPrefab = this.itemCarR1;
+                        break;
+                    case 2:
+                        carPrefab = this.itemCarR2;
+                        break;
+                    case 3:
+                        carPrefab = this.itemCarR3;
                         break;
                     default:
                         console.error(`Invalid car type: ${type}`);
