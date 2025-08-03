@@ -71,7 +71,18 @@ export class CarManager extends Component {
 
         // 用于跟踪每个nodeUx、nodeLx和nodeRx节点下的汽车排序
         const nodeUSortIndex: {[key: string]: number} = {};
-        nodeNames.forEach(name => nodeUSortIndex[name] = 0);
+        // 用于跟踪每个nodeUx节点下的Y坐标偏移量
+        const nodeUOffsetY: {[key: string]: number} = {};
+        // 用于跟踪每个nodeLx节点下的X坐标偏移量
+        const nodeLOffsetX: {[key: string]: number} = {};
+        // 用于跟踪每个nodeRx节点下的X坐标偏移量
+        const nodeROffsetX: {[key: string]: number} = {};
+        nodeNames.forEach(name => {
+            nodeUSortIndex[name] = 0;
+            nodeUOffsetY[name] = 0;
+            nodeLOffsetX[name] = 0;
+            nodeROffsetX[name] = 0;
+        });
 
         // 创建汽车
         for (const car of carData) {
@@ -150,6 +161,49 @@ export class CarManager extends Component {
                 // 记录该节点下的排序
                 nodeUSortIndex[nodeName]++;
                 console.log(`Created car type ${type} at ${nodeName}, sort: ${sort}`);
+
+                // 为Ux系列汽车设置位置
+                if (outerMap.startsWith('U')) {
+                    // 设置位置: 第一辆为(0, 0)，后续车辆根据前一辆类型计算Y坐标
+                    const currentSort = nodeUSortIndex[nodeName];
+                    let posX = 0;
+                    let posY = nodeUOffsetY[nodeName];
+
+                    // 设置汽车位置
+                    carNode.setPosition(new Vec3(posX, posY, 0));
+                    console.log(`设置U系列汽车位置: (${posX}, ${posY})`);
+
+                    // 更新偏移量，供下一辆汽车使用 (根据用户需求改为递减)
+                    nodeUOffsetY[nodeName] -= 100 * type;
+                }
+                // 为Lx系列汽车设置位置
+                else if (outerMap.startsWith('L')) {
+                    // 设置位置: 第一辆为(0, 0)，后续车辆根据前一辆类型计算X坐标
+                    const currentSort = nodeUSortIndex[nodeName];
+                    let posX = nodeLOffsetX[nodeName];
+                    let posY = 0;
+
+                    // 设置汽车位置
+                    carNode.setPosition(new Vec3(posX, posY, 0));
+                    console.log(`设置L系列汽车位置: (${posX}, ${posY})`);
+
+                    // 更新偏移量，供下一辆汽车使用 (根据用户需求为递增)
+                    nodeLOffsetX[nodeName] += 100 * type;
+                }
+                // 为Rx系列汽车设置位置
+                else if (outerMap.startsWith('R')) {
+                    // 设置位置: 第一辆为(0, 0)，后续车辆根据前一辆类型计算X坐标
+                    const currentSort = nodeUSortIndex[nodeName];
+                    let posX = nodeROffsetX[nodeName];
+                    let posY = 0;
+
+                    // 设置汽车位置
+                    carNode.setPosition(new Vec3(posX, posY, 0));
+                    console.log(`设置R系列汽车位置: (${posX}, ${posY})`);
+
+                    // 更新偏移量，供下一辆汽车使用 (根据用户需求为递减)
+                    nodeROffsetX[nodeName] -= 100 * type;
+                }
 
                 // 设置汽车点击事件
                 this.setupCarClickEvents(carNode, parentNode, carPrefab, type);
