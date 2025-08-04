@@ -228,141 +228,25 @@ export class CarManager extends Component {
 
     // 处理汽车点击逻辑
     private handleCarClick(carNode: Node, parentNode: Node, carPrefab: Prefab, type: number) {
+        // 获取汽车世界坐标
         const worldPos = carNode.worldPosition;
-        console.log(`汽车被点击! 父节点: ${parentNode.name}, 预制名称: ${carPrefab.name}, 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)})`);
-            
-        // 检查是否为Ux系列汽车
-        if (parentNode.name.startsWith('nodeU')) {
-            // 获取当前关卡地图数据
-            const mapData = MapData.getMapDataByLevel(this.currentLevel);
-            if (mapData) {
-                const { Map, MapH } = mapData;
-                // 假设x坐标对应地图列索引 (这里需要根据实际映射关系调整)
-                // 简化示例: 从父节点名称提取x值，如nodeU0对应x=0
-                const x = parseInt(parentNode.name.replace('nodeU', ''));
-                
-                // 查找最后一个为0的单元格i，并统计0的总数
-                let lastZeroIndex = -1;
-                let zeroCount = 0;
-                
-                for (let i = MapH - 1; i >= 0; i--) {
-                    if (Map[i][x] === 0) {
-                        lastZeroIndex = i;
-                        zeroCount++;
-                    }
-                }
-                
-                // 根据汽车类型设置长度
-                let carLength = 1;
-                switch (type) {
-                    case 1:
-                        carLength = 1;
-                        break;
-                    case 2:
-                        carLength = 2;
-                        break;
-                    case 3:
-                        carLength = 3;
-                        break;
-                    default:
-                        console.error(`无效的汽车类型: ${type}，默认长度为1`);
-                        carLength = 1;
-                        break;
-                }
-                
-                if (zeroCount < carLength) {
-                    console.log(`停车失败: 空位数量(${zeroCount})小于汽车长度(${carLength})`);
-                    // 添加失败效果：短暂闪烁或播放音效
-                    carNode.getComponent(Animation)?.play('park_fail');
-                } else {
-                    console.log(`停车成功: 找到${zeroCount}个空位`);
-                    // 成功停车计数+1
-                    this.successfulParks++;
-                    console.log(`当前成功停车数: ${this.successfulParks}`);
-                    
-                    // 检查是否已停满所有汽车
-                    const totalCars = MapData.getCarDataByLevel(this.currentLevel)?.length || 0;
-                    if (this.successfulParks >= totalCars) {
-                        console.log(`恭喜！已成功停放所有${totalCars}辆汽车，关卡完成！`);
-                        // 通知GameManager关卡完成
-                        // 使用find方法获取GameManager节点
-                        const gameManagerNode = find('GameManager');
-                        if (gameManagerNode) {
-                            const gameManager = gameManagerNode.getComponent('GameManager') as any;
-                            if (gameManager) {
-                                console.log('成功获取GameManager引用');
-                                gameManager.onLevelClear();
-                            } else {
-                                console.error('GameManager节点上未找到GameManager组件');
-                            }
-                        } else {
-                            console.error('无法找到GameManager节点');
-                        }
-                    }
-                    // 更新地图数据
-                    for (let i = lastZeroIndex; i > lastZeroIndex - carLength; i--) {
-                        if (i >= 0) { // 确保索引不会小于0
-                            Map[i][x] = 1;
-                        }
-                    }
-                    // 刷新地图显示
-                    const mapManager = this.node.parent.getComponent('MapManager');
-                    if (mapManager) {
-                        (mapManager as any).updateMapDisplay();
-                    }
-                      
-                    // 隐藏被点击的汽车
-                    carNode.active = false;
-                       
-                    // 在UILevel/AnimNode/nodePark下创建新汽车
-                    const newPos = new Vec3(worldPos.x, worldPos.y + 100 * lastZeroIndex, worldPos.z);
-                    this.createNewCarAtPosition(newPos, carPrefab);
-                }
-            }
-        } else {
-            // 非Ux系列汽车，保持原有逻辑
-            // 隐藏被点击的汽车
-            carNode.active = false;
-              
-            // 在UILevel/AnimNode/nodePark下创建新汽车
-            this.createNewCarAtPosition(worldPos, carPrefab);
-        }
+        
+        // 获取当前关卡地图数据
+        const mapData = MapData.getMapDataByLevel(this.currentLevel);
+        const mapInfo = mapData ? JSON.stringify(mapData.Map) : '无地图数据';
+        
+        // 获取汽车的sort属性（从父节点名称中提取）
+        // 假设父节点名称格式为nodeUx、nodeLx或nodeRx
+        const sort = parseInt(parentNode.name.replace(/[^0-9]/g, ''));
+        
+        // 打印所需信息
+        console.log(`汽车被点击!`);
+        console.log(`- 父节点: ${parentNode.name}`);
+        console.log(`- type: ${type}`);
+        console.log(`- sort: ${sort}`);
+        console.log(`- 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`);
+        console.log(`- map: ${mapInfo}`);
     }
 
-    // 在指定位置创建新汽车
-    private createNewCarAtPosition(worldPos: Vec3, carPrefab: Prefab) {
-        // 检查UILevel节点是否存在
-        if (!this.UILevel) {
-            console.error('UILevel节点不存在，无法创建新汽车');
-            return;
-        }
 
-        // 查找AnimNode/nodePark节点
-        const animNode = this.UILevel.getChildByName('AnimNode');
-        if (!animNode) {
-            console.error('AnimNode节点不存在，无法创建新汽车');
-            return;
-        }
-
-        const nodePark = animNode.getChildByName('nodePark');
-        if (!nodePark) {
-            console.error('nodePark节点不存在，无法创建新汽车');
-            return;
-        }
-
-        // 计算新位置 (原始位置 + (0, 600))
-        const newPos = new Vec3(worldPos.x, worldPos.y + 600, worldPos.z);
-
-        // 实例化新汽车
-        const newCar = instantiate(carPrefab);
-        if (newCar) {
-            // 设置父节点
-            newCar.setParent(nodePark);
-            // 设置位置
-            newCar.worldPosition = newPos;
-            console.log(`成功创建新汽车! 位置: (${newPos.x.toFixed(2)}, ${newPos.y.toFixed(2)})`);
-        } else {
-            console.error('实例化汽车预制体失败');
-        }
-    }
 }
