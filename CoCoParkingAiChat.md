@@ -123,26 +123,18 @@
 （10）修改汽车点击事件，点击汽车时：打印信息，汽车的父节点、type、sort、世界坐标、map。
 （11）优化代码、解耦合代码：CarManager.ts
 （12）创建完汽车后，要为每一辆汽车存停在哪里的信息数据，而且是需要整整一关游戏过程，都可以快速获取它的值。
-    第1辆汽车是{地图外部：U0，排序是0，类型是3}，
-    第2辆汽车是{地图外部：U1，排序是0，类型是2}，
-    第3辆汽车是{地图外部：U1，排序是1，类型是1}，
-    第4辆汽车是{地图外部：R0，排序是0，类型是2}，
-    第5辆汽车是{地图外部：R0，排序是1，类型是1}，
-    第6辆汽车是{地图外部：R1，排序是0，类型是3}，
-    第7辆汽车是{地图外部：R2，排序是0，类型是3}，
-    第8辆汽车是{地图外部：L1，排序是0，类型是3}
-    那么，Car1停在 
-        Car2停在OutMapU1[]的0,1，记作Car2Stop[2]={0+mapH,1+mapH}，
-        Car3停在OutMapU1[]的2，记作Car3Stop[1]={2+mapH}，
-        Car4停在OutMapR0[]的0,1，记作Car4Stop[2]={0-mapW,1-mapW}，
-        Car5停在OutMapR0[]的2，记作Car5Stop[1]={2-mapW}，
-        Car6停在OutMapR1[]的0,1,2，记作Car6Stop[3]={0-mapW,1-mapW,2-mapW}，
-        Car7停在OutMapR2[]的0,1,2，记作Car7Stop[3]={0-mapW,1-mapW,2-mapW}，
-        Car8停在OutMapL1[]的0,1,2，记作Car8Stop[3]={0+mapW,1+mapW,2+mapW}，
-（13）创建汽车时，汽车的坐标需要根据汽车类型type和排序sort适配：
-    （13.1）同样在Ux的汽车，第1辆type=2汽车是(0,0),第2辆type=3汽车是第1辆汽车坐标-(0,100*第1辆type),第3辆type=1汽车是第2辆汽车坐标-(0,100*第2辆type)。
-    （13.2）同样在Lx的汽车，第1辆type=2汽车是(0,0),第2辆type=3汽车是第1辆汽车坐标+(100*第1辆type,0),第3辆type=1汽车是第2辆汽车坐标+(100*第2辆type,0)。
-    （13.3）同样在Rx的汽车，第1辆type=2汽车是(0,0),第2辆type=3汽车是第1辆汽车坐标-(100*第1辆type,0),第3辆type=1汽车是第2辆汽车坐标-(100*第2辆type,0)。
+    // 汽车数据
+    public static CarData: {outerMap: string, sort: number, type: number}[] = [
+        {outerMap: 'U1', sort: 0, type: 3},
+        {outerMap: 'U2', sort: 0, type: 3},
+        {outerMap: 'U2', sort: 1, type: 3},
+        {outerMap: 'U3', sort: 0, type: 3},
+        {outerMap: 'L0', sort: 0, type: 2},
+        {outerMap: 'L4', sort: 0, type: 2},
+        {outerMap: 'R0', sort: 0, type: 2},
+        {outerMap: 'R4', sort: 0, type: 2}
+    ];
+ 
 
 
 
