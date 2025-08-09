@@ -53,7 +53,10 @@ export class UIManager extends Component {
     public showLevelOnly(): void {
         this.UIMainMenu.active = false;
         this.UILevel.active = true;
-        this.UILevelClear.active = false;
+        // 只有在通关界面当前显示时才隐藏它，避免不必要的状态变化
+        if (this.UILevelClear && this.UILevelClear.active) {
+            this.UILevelClear.active = false;
+        }
         this.UISetting.active = false;
         this.UIConfirm.active = false;
         // 播放关卡界面动画
@@ -65,31 +68,39 @@ export class UIManager extends Component {
     // 显示通关界面，不用隐藏关卡界面，隐藏其他界面
     public showLevelClearOnly(): void {
         console.log('===== 调用showLevelClearOnly方法 =====');
+        
+        // 先隐藏其他界面，避免界面闪烁
         this.UIMainMenu.active = false;
-        // 保持关卡界面显示
-        this.UILevel.active = true;
-        
-        // 检查并设置UILevelClear
-        console.log('UILevelClear节点引用:', this.UILevelClear);
-        if (this.UILevelClear) {
-            console.log('设置UILevelClear.active = true');
-            this.UILevelClear.active = true;
-            console.log('UILevelClear当前active状态:', this.UILevelClear.active);
-        } else {
-            console.error('ERROR: UILevelClear节点未在编辑器中赋值');
-        }
-        
         this.UISetting.active = false;
         this.UIConfirm.active = false;
         
-        // 检查并播放动画
-        console.log('animLevelClear组件引用:', this.animLevelClear);
-        if (this.animLevelClear) {
-            console.log('尝试播放通关动画: AnimShowLevelClear');
-            this.animLevelClear.play('AnimShowLevelClear');
-            console.log('动画播放命令已发送');
+        // 确保关卡界面显示（如果还没有显示的话）
+        if (!this.UILevel.active) {
+            this.UILevel.active = true;
+        }
+        
+        // 检查并设置UILevelClear（避免重复设置）
+        console.log('UILevelClear节点引用:', this.UILevelClear);
+        if (this.UILevelClear) {
+            if (!this.UILevelClear.active) {
+                console.log('设置UILevelClear.active = true');
+                this.UILevelClear.active = true;
+                console.log('UILevelClear当前active状态:', this.UILevelClear.active);
+                /*
+                // 只在首次显示时播放动画
+                console.log('animLevelClear组件引用:', this.animLevelClear);
+                if (this.animLevelClear) {
+                    console.log('尝试播放通关动画: AnimShowLevelClear');
+                    this.animLevelClear.play('AnimShowLevelClear');
+                    console.log('动画播放命令已发送');
+                } else {
+                    console.error('ERROR: animLevelClear动画组件未在编辑器中赋值');
+                }*/
+            } else {
+                console.log('UILevelClear已经处于active状态，跳过重复设置');
+            }
         } else {
-            console.error('ERROR: animLevelClear动画组件未在编辑器中赋值');
+            console.error('ERROR: UILevelClear节点未在编辑器中赋值');
         }
         
         // 输出当前所有UI节点状态

@@ -1346,9 +1346,6 @@
     "_enabled": true,
     "__prefab": null,
     "nodeCar": null,
-    "UILevel": {
-      "__id__": 22
-    },
     "itemCarU1": {
       "__uuid__": "d56fb77e-e3ad-4105-8cb9-4eb3034279da",
       "__expectedType__": "cc.Prefab"
@@ -1385,6 +1382,7 @@
       "__uuid__": "4915ff8e-dffc-41c7-a6f6-d43fedce3c70",
       "__expectedType__": "cc.Prefab"
     },
+    "uiManager": null,
     "_id": "baBfxZ/EZDEJMO3CsiUuvS"
   },
   {

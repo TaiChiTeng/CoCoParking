@@ -40,7 +40,7 @@ enum CarDirection {
 // 常量定义
 const CONSTANTS = {
     CAR_POSITION_OFFSET: 100,
-    DEFAULT_ANIM_DURATION: 0.5,
+    DEFAULT_ANIM_DURATION: 0.2,
     MAX_CAR_TYPE: 3,
     MIN_CAR_TYPE: 1
 } as const;
