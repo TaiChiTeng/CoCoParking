@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Prefab, instantiate, Vec3 } from 'cc';
+import { _decorator, Component, Node, Prefab, instantiate, Vec3, tween } from 'cc';
 import { MapData } from './MapData';
 const { ccclass, property } = _decorator;
 
@@ -348,9 +348,178 @@ export class CarManager extends Component {
         if (parkingInfo) {
             console.log(`- 车头位置: ${parkingInfo.headMap}`);
             console.log(`- 车尾位置: ${parkingInfo.tailMap}`);
+
+            // 根据汽车类型进行不同处理
+            if (outerMap.startsWith('U')) {
+                console.log(`汽车属于下方`);
+                // 从outerMap中提取数字部分作为x坐标（例如从'U1'提取'1'）
+                const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
+                console.log(`Ux汽车的x坐标从outerMap提取: ${x}`);
+                const mapH = mapData.MapH;
+                const map = mapData.Map;
+
+                // 可以通过位置策略获取汽车位置
+                const nodeName = `node${outerMap}`;
+                const strategy = this.positionStrategies[nodeName];
+                if (strategy) {
+                    const pos = strategy.calculatePosition(sort, type);
+                    console.log(`通过位置策略获取的汽车位置: (${pos.x}, ${pos.y})`);
+                }
+
+                // 检查是否可以向上开
+                console.log(`parkingInfo.headMap: ${parkingInfo.headMap}, x: ${x}`);
+                console.log(`map[parkingInfo.headMap - 1][x]: ${map[x][parkingInfo.headMap - 1]}`);
+                console.log(`整个map数据: ${JSON.stringify(map)}`);
+                if (parkingInfo.headMap - 1 === 0 || map[x][parkingInfo.headMap - 1] !== 0) {
+                    console.log(`汽车不可以向上开`);
+
+                    // 检查是否可以向下开
+                    if (parkingInfo.tailMap + 1 !== mapH - 1 || map[parkingInfo.tailMap + 1][x] !== 0) {
+                        console.log(`汽车也不可以向下开`);
+                    } else {
+                        console.log(`汽车可以向下开`);
+                        let carStopsOutside = true;
+
+                        // 检查车尾+1到mapH-1的位置
+                        for (let index = parkingInfo.tailMap + 1; index < mapH; index++) {
+                            if (map[index][x] !== 0) {
+                                console.log(`车尾会停在${index - 1}`);
+                                console.log(`汽车会停在停车场里边，被停车场里的车或雪糕桶挡下来。`);
+                                carStopsOutside = false;
+                                break;
+                            }
+                        }
+
+                        if (carStopsOutside) {
+                            console.log(`Ux的汽车会停在停车场外，和Ux相同且Sort比它大的车一起撤出停车场。`);
+                        }
+                    }
+                } else {
+                    console.log(`汽车可以向上开`);
+                    let newHeadPos = parkingInfo.headMap - 1;
+
+                    // 寻找新的车头位置
+                    for (let index = parkingInfo.headMap - 1; index >= 0; index--) {
+                        if (map[index][x] !== 0) {
+                            break;
+                        }
+                        newHeadPos = index;
+                    }
+
+                    console.log(`车头会停在${newHeadPos}`);
+                }
+            } else if (outerMap.startsWith('R')) {
+                console.log(`汽车属于左方`);
+                // Rx汽车的逻辑，暂不细分
+            } else if (outerMap.startsWith('L')) {
+                console.log(`汽车属于右方`);
+                // Lx汽车的逻辑，暂不细分
+            }
+
+            // 更新汽车数据、地图数据，播放动画
+            if (outerMap.startsWith('U')) {
+                // 从outerMap中提取数字部分作为x坐标（例如从'U1'提取'1'）
+                const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
+                console.log(`Ux汽车的x坐标从outerMap提取: ${x}`);
+                const mapH = mapData.MapH;
+                const map = mapData.Map;
+                let carStopsOutside = true;
+                let index = parkingInfo.tailMap + 1;
+                let newHeadPos = parkingInfo.headMap - 1;
+
+                // 对于Ux汽车，我们已经确定了移动方向和新位置
+                if (parkingInfo.headMap - 1 === 0 || map[x][parkingInfo.headMap - 1] !== 0) {
+                    // 不能向上开
+                    if (parkingInfo.tailMap + 1 === mapH - 1 && map[x][parkingInfo.tailMap + 1] === 0) {
+                        // 可以向下开
+                        // 检查车尾+1到mapH-1的位置
+                        carStopsOutside = true;
+                        for (index = parkingInfo.tailMap + 1; index < mapH; index++) {
+                            if (map[x][index] !== 0) {
+                                carStopsOutside = false;
+                                break;
+                            }
+                        }
+
+                        if (carStopsOutside) {
+                            // 汽车停在停车场外，需要撤出
+                            console.log(`Ux汽车撤出停车场`);
+                            // 1. 更新汽车停放信息
+                            parkingInfo.headMap = parkingInfo.tailMap + 1;
+                            parkingInfo.tailMap = mapH - 1;
+                            // 2. 更新地图数据（将原位置设为0）
+                            for (let i = parkingInfo.headMap - type; i < parkingInfo.headMap; i++) {
+                                if (i >= 0 && i < mapH) {
+                                    map[x][i] = 0;
+                                }
+                            }
+                            // 3. 移动动画
+                            this.moveCarAnimation(carNode, new Vec3(0, -100 * (parkingInfo.tailMap - parkingInfo.headMap + 1), 0), 1);
+                        } else {
+                            // 汽车停在停车场内
+                            console.log(`Ux汽车向下移动到新位置`);
+                            // 1. 更新汽车停放信息
+                            const oldHead = parkingInfo.headMap;
+                            parkingInfo.headMap = parkingInfo.tailMap + 1;
+                            parkingInfo.tailMap = index - 1;
+                            // 2. 更新地图数据
+                            for (let i = oldHead; i <= parkingInfo.tailMap; i++) {
+                                if (i >= 0 && i < mapH) {
+                                    if (i < oldHead + type) {
+                                        map[x][i] = 0; // 清除原位置
+                                    }
+                                    if (i >= parkingInfo.headMap && i <= parkingInfo.tailMap) {
+                                        map[x][i] = type; // 设置新位置
+                                    }
+                                }
+                            }
+                            // 3. 移动动画
+                            this.moveCarAnimation(carNode, new Vec3(0, -100 * (parkingInfo.headMap - oldHead), 0), 1);
+                        }
+                    }
+                } else {
+                    // 可以向上开
+                    console.log(`Ux汽车向上移动到新位置`);
+                    // 寻找新的车头位置
+                    newHeadPos = parkingInfo.headMap - 1;
+                    for (index = parkingInfo.headMap - 1; index >= 0; index--) {
+                        if (map[x][index] !== 0) {
+                            break;
+                        }
+                        newHeadPos = index;
+                    }
+
+                    // 1. 更新汽车停放信息
+                    const oldHead = parkingInfo.headMap;
+                    parkingInfo.headMap = newHeadPos;
+                    parkingInfo.tailMap = newHeadPos + type - 1;
+                    // 2. 更新地图数据
+                    for (let i = newHeadPos; i <= oldHead + type - 1; i++) {
+                        if (i >= 0 && i < mapH) {
+                            if (i >= newHeadPos && i <= parkingInfo.tailMap) {
+                                map[x][i] = type; // 设置新位置
+                            } else {
+                                map[x][i] = 0; // 清除原位置
+                            }
+                        }
+                    }
+                    // 3. 移动动画
+                    this.moveCarAnimation(carNode, new Vec3(0, 100 * (oldHead - newHeadPos), 0), 1);
+                }
+            }
+            // Rx和Lx汽车的逻辑将在后续实现
+        
         } else {
             console.log(`- 未找到停放信息`);
         }
+    }
+
+    // 汽车移动动画
+    private moveCarAnimation(carNode: Node, targetOffset: Vec3, duration: number): void {
+        const targetPos = carNode.position.clone().add(targetOffset);
+        tween(carNode)
+            .to(duration, { position: targetPos })
+            .start();
     }
 
     // 增加成功停车计数
