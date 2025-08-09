@@ -36,7 +36,8 @@ export class MapData {
     }
 
     // 根据关卡数获取汽车数据
-    public static getCarDataByLevel(level: number): {outerMap: string, sort: number, type: number}[] {
+    public static getCarDataByLevel(level: number): {outerMap: string, sort: number, type: number, inPark: number}[] {
+
         // 确保关卡数在有效范围内
         if (level < 1 || level > this.getTotalLevels()) {
             console.error(`Invalid level: ${level}, using level 1 instead.`);

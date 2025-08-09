@@ -16,14 +16,14 @@ export class Level3Map {
     ];
 
     // 汽车数据
-    public static CarData: {outerMap: string, sort: number, type: number}[] = [
-        {outerMap: 'U1', sort: 0, type: 3},
-        {outerMap: 'U2', sort: 0, type: 3},
-        {outerMap: 'U2', sort: 1, type: 3},
-        {outerMap: 'U3', sort: 0, type: 3},
-        {outerMap: 'L0', sort: 0, type: 2},
-        {outerMap: 'L4', sort: 0, type: 2},
-        {outerMap: 'R0', sort: 0, type: 2},
-        {outerMap: 'R4', sort: 0, type: 2}
+    public static CarData: {outerMap: string, sort: number, type: number, inPark: number}[] = [
+        {outerMap: 'U1', sort: 0, type: 3, inPark: 0},
+        {outerMap: 'U2', sort: 0, type: 3, inPark: 0},
+        {outerMap: 'U2', sort: 1, type: 3, inPark: 0},
+        {outerMap: 'U3', sort: 0, type: 3, inPark: 0},
+        {outerMap: 'L0', sort: 0, type: 2, inPark: 0},
+        {outerMap: 'L4', sort: 0, type: 2, inPark: 0},
+        {outerMap: 'R0', sort: 0, type: 2, inPark: 0},
+        {outerMap: 'R4', sort: 0, type: 2, inPark: 0}
     ];
 }

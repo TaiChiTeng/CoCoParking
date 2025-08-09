@@ -18,6 +18,7 @@ interface CarParkingInfo {
     headMap: number;
     tailMap: number;
     node: Node;
+    inPark: number; // 0: 在停车场外, 1: 在停车场内
 }
 
 // 汽车移动状态枚举
@@ -27,6 +28,10 @@ enum CarMovementStatus {
     CANNOT_MOVE,
     CAN_MOVE_DOWN_IN_PARK,
     CAN_MOVE_DOWN_OUT_PARK,
+    CAN_MOVE_LEFT,
+    CAN_MOVE_LEFT_IN_PARK,
+    CAN_MOVE_LEFT_OUT_PARK,
+    CAN_MOVE_RIGHT,
     PLAYING_ANIM
 }
 
@@ -241,7 +246,7 @@ export class CarManager extends Component {
     /**
      * 批量创建汽车
      */
-    private createCars(carData: Array<{outerMap: string, sort: number, type: number}>): void {
+    private createCars(carData: Array<{outerMap: string, sort: number, type: number, inPark: number}>): void {
         for (const car of carData) {
             try {
                 this.createCar(car);
@@ -254,7 +259,7 @@ export class CarManager extends Component {
     /**
      * 创建单个汽车
      */
-    private createCar(car: {outerMap: string, sort: number, type: number}): void {
+    private createCar(car: {outerMap: string, sort: number, type: number, inPark: number}): void {
         const {outerMap, sort, type} = car;
         
         if (!this.validateCarData(car)) {
@@ -282,7 +287,7 @@ export class CarManager extends Component {
         this.updateNodeSortIndex(nodeName);
         this.setCarPosition(nodeName, carNode, type);
         
-        const parkingInfo = this.calculateParkingInfo(outerMap, sort, type, carNode);
+        const parkingInfo = this.calculateParkingInfo(outerMap, sort, type, carNode, car.inPark);
         this.carParkingInfos.push(parkingInfo);
         this.setupCarClickEvents(carNode, parentNode, type, sort);
     }
@@ -290,7 +295,7 @@ export class CarManager extends Component {
     /**
      * 验证汽车数据
      */
-    private validateCarData(car: {outerMap: string, sort: number, type: number}): boolean {
+    private validateCarData(car: {outerMap: string, sort: number, type: number, inPark: number}): boolean {
         const {outerMap, sort, type} = car;
         return outerMap && 
                typeof sort === 'number' && sort >= 0 &&
@@ -308,7 +313,7 @@ export class CarManager extends Component {
     /**
      * 计算汽车停放信息
      */
-    private calculateParkingInfo(outerMap: string, sort: number, type: number, carNode: Node): CarParkingInfo {
+    private calculateParkingInfo(outerMap: string, sort: number, type: number, carNode: Node, inPark: number): CarParkingInfo {
         const mapData = MapData.getMapDataByLevel(this.currentLevel);
         if (!mapData) {
             throw new Error(`Cannot get map data for level ${this.currentLevel}`);
@@ -352,7 +357,8 @@ export class CarManager extends Component {
             type,
             headMap,
             tailMap,
-            node: carNode
+            node: carNode,
+            inPark: inPark
         };
     }
 
@@ -534,8 +540,83 @@ export class CarManager extends Component {
      * 计算右方向汽车移动状态
      */
     private calculateRightCarMovementStatus(parkingInfo: CarParkingInfo, mapData: any, outerMap: string): CarMovementStatus {
-        // TODO: 实现右方向汽车移动逻辑
-        return CarMovementStatus.CANNOT_MOVE;
+        const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
+        const map = mapData.Map;
+        const mapW = mapData.MapW;
+
+        console.log("汽车属于左方");
+
+        const canMoveRight = this.canCarMoveRight(parkingInfo, map, x, mapW);
+        
+        // 使用canCarMoveRight方法的结果来判断是否可以向右开
+        if (!canMoveRight) {
+            console.log("汽车不可以向右开");
+            
+            // 检查是否可以向左开
+            const tailLeftCol = parkingInfo.tailMap - 1;
+            const headAlreadyOutside = parkingInfo.headMap < 0;
+            
+            // 车尾左边一格是停车场内 并且 车尾左边一格不是0
+            const tailLeftBlocked = (tailLeftCol >= 0 && tailLeftCol < mapW && map[x][tailLeftCol] !== 0);
+            
+            if (tailLeftBlocked || headAlreadyOutside) {
+                console.log("汽车也不可以向左开");
+                return CarMovementStatus.CANNOT_MOVE;
+            } else {
+                console.log("汽车可以向左开");
+                
+                // 检查汽车会停在哪里
+                let carStopsOutside = true;
+                for (let index = parkingInfo.tailMap + 1; index < mapW; index++) {
+                    if (map[x][index] !== 0) {
+                        console.log(`车尾会停在${index - 1}`, "汽车会停在停车场里边，被停车场里的车或雪糕桶挡下来。");
+                        carStopsOutside = false;
+                        break;
+                    }
+                }
+                
+                if (carStopsOutside) {
+                    console.log("Rx的汽车会停在停车场外，和Rx相同且Sort比它大的车一起撤出停车场。");
+                    return CarMovementStatus.CAN_MOVE_LEFT_OUT_PARK;
+                } else {
+                    return CarMovementStatus.CAN_MOVE_LEFT_IN_PARK;
+                }
+            }
+        } else {
+            console.log("汽车可以向右开");
+            
+            // 寻找车头新位置
+            let newHeadPos = parkingInfo.headMap + 1;
+            
+            // 检查停车场内的位置
+            for (let index = parkingInfo.headMap + 1; index < mapW; index++) {
+                if (map[x][index] !== 0) {
+                    break;
+                }
+                newHeadPos = index;
+            }
+            
+            // 如果可以移动到停车场外，继续检查停车场外的位置
+            if (newHeadPos === mapW - 1) {
+                // 检查停车场外是否有其他汽车阻挡
+                for (let index = mapW; index < mapW + 10; index++) { // 检查停车场外10个位置
+                    const hasCarAtPosition = this.carParkingInfos.some(carInfo => 
+                        carInfo.outerMap === parkingInfo.outerMap && 
+                        carInfo !== parkingInfo && // 排除自己
+                        carInfo.headMap <= index && 
+                        carInfo.tailMap >= index
+                    );
+                    
+                    if (hasCarAtPosition) {
+                        break;
+                    }
+                    newHeadPos = index;
+                }
+            }
+            
+            console.log(`车头会停在${newHeadPos}`);
+            return CarMovementStatus.CAN_MOVE_RIGHT;
+        }
     }
 
     /**
@@ -595,6 +676,52 @@ export class CarManager extends Component {
     }
 
     /**
+     * 检查汽车是否可以向右移动
+     */
+    private canCarMoveRight(parkingInfo: CarParkingInfo, map: number[][], x: number, mapW: number): boolean {
+        // 如果车头已经在地图右边界，不能向右移动
+        if (parkingInfo.headMap === mapW - 1) {
+            return false;
+        }
+        
+        // 检查车头右边一格是否被占用
+        const rightColIndex = parkingInfo.headMap + 1;
+        if (!this.isValidMapPosition(map, x, rightColIndex) || map[x][rightColIndex] !== 0) {
+            return false;
+        }
+        
+        // 检查汽车是否在停车场外且它右边有车
+        // 对于Rx汽车，停车场外包括左侧（headMap < 0）和右侧（headMap >= mapW）
+        const isCarOutsidePark = parkingInfo.headMap < 0 || parkingInfo.headMap >= mapW;
+        if (isCarOutsidePark) {
+            // 检查右边是否有车（需要考虑右边位置也可能在停车场外）
+            const rightPosition = parkingInfo.headMap + 1;
+            
+            // 如果右边位置在停车场内，检查map
+            if (rightPosition >= 0 && rightPosition < mapW && map[x][rightPosition] !== 0) {
+                console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}右边位置${rightPosition}在停车场内被占用`);
+                return false;
+            }
+            
+            // 如果右边位置也在停车场外，检查是否有其他车辆占据该位置
+            if (rightPosition < 0 || rightPosition >= mapW) {
+                const hasCarRight = this.carParkingInfos.some(carInfo => 
+                    carInfo.outerMap === parkingInfo.outerMap && 
+                    carInfo !== parkingInfo && // 排除自己
+                    carInfo.headMap <= rightPosition && 
+                    carInfo.tailMap >= rightPosition
+                );
+                if (hasCarRight) {
+                    console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}右边位置${rightPosition}在停车场外被其他汽车占用`);
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+
+    /**
      * 检查地图位置是否有效
      */
     private isValidMapPosition(map: number[][], row: number, col: number): boolean {
@@ -618,8 +745,10 @@ export class CarManager extends Component {
 
         if (outerMap.startsWith(CarDirection.UP)) {
             this.executeUpCarMovement(carNode, parkingInfo, mapData, outerMap, movementStatus);
+        } else if (outerMap.startsWith(CarDirection.RIGHT)) {
+            this.executeRightCarMovement(carNode, parkingInfo, mapData, outerMap, movementStatus);
         }
-        // TODO: 实现其他方向的移动逻辑
+        // TODO: 实现左方向的移动逻辑
     }
 
     /**
@@ -642,6 +771,29 @@ export class CarManager extends Component {
             this.moveCarDown(carNode, parkingInfo, map, x, mapH);
         } else if (movementStatus === CarMovementStatus.CAN_MOVE_DOWN_OUT_PARK) {
             this.moveCarDownOutPark(carNode, parkingInfo, map, x, mapH, outerMap);
+        }
+    }
+
+    /**
+     * 执行右方向汽车移动
+     */
+    private executeRightCarMovement(
+        carNode: Node, 
+        parkingInfo: CarParkingInfo, 
+        mapData: any, 
+        outerMap: string, 
+        movementStatus: CarMovementStatus
+    ): void {
+        const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
+        const map = mapData.Map;
+        const mapW = mapData.MapW;
+
+        if (movementStatus === CarMovementStatus.CAN_MOVE_LEFT || 
+            movementStatus === CarMovementStatus.CAN_MOVE_LEFT_IN_PARK || 
+            movementStatus === CarMovementStatus.CAN_MOVE_LEFT_OUT_PARK) {
+            this.moveCarLeft(carNode, parkingInfo, map, x);
+        } else if (movementStatus === CarMovementStatus.CAN_MOVE_RIGHT) {
+            this.moveCarRight(carNode, parkingInfo, map, x);
         }
     }
 
@@ -757,6 +909,198 @@ export class CarManager extends Component {
     }
 
     /**
+     * 向左移动汽车
+     */
+    private moveCarLeft(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], x: number): void {
+        console.log("汽车可以向左开");
+        
+        const mapW = map[0].length;
+        let carStopsOutside = true;
+        let stopIndex = -1;
+
+        // 遍历从车尾+1到mapW-1，检查是否有障碍物
+        for (let index = parkingInfo.tailMap + 1; index < mapW; index++) {
+            if (this.isValidMapPosition(map, x, index) && map[x][index] !== 0) {
+                console.log(`车尾会停在${index - 1}`);
+                console.log("汽车会停在停车场里边，被停车场里的车或雪糕桶挡下来。");
+                carStopsOutside = false;
+                stopIndex = index - 1;
+                break;
+            }
+        }
+
+        const oldTail = parkingInfo.tailMap;
+        const oldHead = parkingInfo.headMap;
+        
+        if (carStopsOutside) {
+            // 汽车停在停车场外
+            console.log("Rx的汽车会停在停车场外，和Rx相同且Sort比它大的车一起撤出停车场。");
+            parkingInfo.tailMap = mapW - 1;
+            parkingInfo.headMap = parkingInfo.tailMap - parkingInfo.type + 1;
+            
+            // 清除原位置
+            for (let i = oldHead; i <= oldTail; i++) {
+                if (this.isValidMapPosition(map, x, i)) {
+                    map[x][i] = 0;
+                }
+            }
+            
+            // 设置新位置
+            for (let i = parkingInfo.headMap; i <= parkingInfo.tailMap; i++) {
+                if (this.isValidMapPosition(map, x, i)) {
+                    map[x][i] = parkingInfo.sort;
+                }
+            }
+            
+            // 移动相同Rx且Sort比它大的车
+            this.moveSimilarRightCarsWithHigherSortLeft(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
+            
+            // 移动相同Rx且Sort比它小的车
+            this.moveSimilarRightCarsWithLowerSortLeft(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
+        } else {
+            // 汽车停在停车场内
+            parkingInfo.tailMap = stopIndex;
+            parkingInfo.headMap = parkingInfo.tailMap - parkingInfo.type + 1;
+            
+            // 更新地图数据
+            this.updateMapForRightCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldTail, x, parkingInfo.sort);
+        }
+
+        // 检查是否有一部分在停车场外，如果是，则移动相关车辆
+        const isPartiallyOutside = oldHead >= mapW || oldTail >= mapW;
+        if (isPartiallyOutside) {
+            // 移动相同Rx且Sort比它大的车
+            this.moveSimilarRightCarsWithHigherSortLeft(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
+            
+            // 移动相同Rx且Sort比它小的车
+            this.moveSimilarRightCarsWithLowerSortLeft(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
+        }
+
+        // 判断停车状态变化 - 向左移动进入停车场
+        const wasOutsidePark = oldHead >= mapW;
+        const isNowInsidePark = parkingInfo.tailMap < mapW;
+        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
+        
+        if (wasOutsidePark && isNowInsidePark) {
+            parkingStatusChange = 'enter';
+            console.log("汽车向左移动从停车场外完全进入停车场内");
+        }
+        
+        // 播放动画
+        const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (oldTail - parkingInfo.tailMap);
+        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0), parkingStatusChange);
+    }
+
+    /**
+     * 向右移动汽车
+     */
+    private moveCarRight(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], x: number): void {
+        console.log(`=== 开始移动汽车${parkingInfo.outerMap}sort${parkingInfo.sort} ===`);
+        console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}可以向右开`);
+        
+        const mapW = map[0].length;
+        let newHeadPosition = parkingInfo.headMap + 1;
+        
+        // 遍历从车头+1到mapW-1，找到新的车头位置
+        // 需要同时检查停车场内的地图数据和停车场外其他汽车的位置
+        for (let index = parkingInfo.headMap + 1; index < mapW; index++) {
+            // 检查停车场内是否被占用
+            if (this.isValidMapPosition(map, x, index) && map[x][index] !== 0) {
+                console.log(`位置${index}在停车场内被占用，停止搜索`);
+                break;
+            }
+            
+            // 检查停车场外是否有其他汽车占据该位置
+            let isOccupiedByOutsideCar = false;
+            for (const otherCar of this.carParkingInfos) {
+                if (otherCar.outerMap === parkingInfo.outerMap && 
+                    otherCar.sort !== parkingInfo.sort &&
+                    otherCar.inPark === 0) { // 只检查停车场外的汽车
+                    // 检查其他汽车是否占据当前检查的位置
+                    if (otherCar.headMap === index || 
+                        (otherCar.headMap <= index && otherCar.tailMap >= index)) {
+                        console.log(`位置${index}被停车场外汽车${otherCar.outerMap}sort${otherCar.sort}占用，停止搜索`);
+                        isOccupiedByOutsideCar = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (isOccupiedByOutsideCar) {
+                break;
+            }
+            
+            newHeadPosition = index;
+            console.log(`位置${index}可用，继续搜索`);
+        }
+        
+        console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}车头会停在${newHeadPosition}`);
+        
+        const oldHead = parkingInfo.headMap;
+        const oldTail = parkingInfo.tailMap;
+        
+        // 打印汽车当前位置状态
+        const isCurrentlyOutside = oldHead < 0 || oldTail < 0 || oldHead >= mapW || oldTail >= mapW;
+        console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}当前位置: 车头=${oldHead}, 车尾=${oldTail}, mapW=${mapW}`);
+        console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}当前${isCurrentlyOutside ? '在停车场外' : '在停车场内'}`);
+        
+        // 检查汽车是否有一部分在停车场外
+        const isPartiallyOutside = oldHead < 0 || oldTail < 0 || oldHead >= mapW || oldTail >= mapW;
+        
+        // 更新汽车位置
+        parkingInfo.headMap = newHeadPosition;
+        // 对于Rx汽车，车头index比车尾index大，所以车尾 = 车头 - type + 1
+        parkingInfo.tailMap = newHeadPosition - parkingInfo.type + 1;
+        
+        // 打印汽车移动后位置状态
+        const willBeInside = parkingInfo.headMap >= 0 && parkingInfo.tailMap >= 0 && parkingInfo.headMap < mapW && parkingInfo.tailMap < mapW;
+        console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}移动后位置: 车头=${parkingInfo.headMap}, 车尾=${parkingInfo.tailMap}`);
+        console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}移动后${willBeInside ? '在停车场内' : '在停车场外'}`);
+        
+        // 更新地图数据
+        this.updateMapForRightCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldTail, x, parkingInfo.type);
+        
+        // 打印地图更新后的状态
+        console.log(`地图更新后，检查位置3和4的状态:`);
+        if (this.isValidMapPosition(map, x, 3)) {
+            console.log(`位置[${x}][3] = ${map[x][3]}`);
+        }
+        if (this.isValidMapPosition(map, x, 4)) {
+            console.log(`位置[${x}][4] = ${map[x][4]}`);
+        }
+        
+        // 根据需求（14.2.3）：如果汽车向右开时，只要汽车有一部分是在停车场外 且 同Rx里边有sort比当前车大的车，
+        // 汽车向右开后，Rx里边有sort比当前车大的车也要一起向右开，但 Rx里边有sort比当前车大的车不会开进停车场。
+        console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}检查联动移动条件: isPartiallyOutside=${isPartiallyOutside}`);
+        if (isPartiallyOutside) {
+            console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}触发联动移动`);
+            this.moveSimilarRightCarsWithHigherSortRight(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
+        } else {
+            console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}不触发联动移动`);
+        }
+        
+        // 判断停车状态变化 - 向右移动进入停车场
+        // 对于Rx汽车，停车场外包括左侧（<0）和右侧（>=mapW）
+        const wasOutsidePark = oldHead < 0 || oldTail < 0 || oldHead >= mapW || oldTail >= mapW;
+        const isNowInsidePark = parkingInfo.headMap >= 0 && parkingInfo.tailMap >= 0 && parkingInfo.headMap < mapW && parkingInfo.tailMap < mapW;
+        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
+        
+        console.log(`停车状态判断: wasOutsidePark=${wasOutsidePark}, isNowInsidePark=${isNowInsidePark}`);
+        
+        if (wasOutsidePark && isNowInsidePark) {
+            parkingStatusChange = 'enter';
+            parkingInfo.inPark = 1; // 更新inPark状态为在停车场内
+            console.log("汽车向右移动从停车场外完全进入停车场内，parkingStatusChange=enter，inPark更新为1");
+        } else {
+            console.log(`汽车向右移动不触发停车状态变化，parkingStatusChange=${parkingStatusChange}`);
+        }
+        
+        // 播放动画
+        const moveDistance = CONSTANTS.CAR_POSITION_OFFSET * (newHeadPosition - oldHead);
+        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0), parkingStatusChange);
+    }
+
+    /**
      * 向下移动汽车到停车场外
      */
     private moveCarDownOutPark(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], x: number, mapH: number, outerMap: string): void {
@@ -796,6 +1140,7 @@ export class CarManager extends Component {
 
     /**
      * 移动相同Ux中sort比当前车大的车一起向上移动（但不进入停车场）
+     * 根据需求14.1.3：要尽量一起向上开
      */
     private moveSimilarCarsWithHigherSortUp(outerMap: string, currentSort: number, map: number[][], mapH: number): void {
         const carsToMove: CarParkingInfo[] = [];
@@ -807,19 +1152,54 @@ export class CarManager extends Component {
             }
         }
         
-        // 移动这些车（向上移动但不进入停车场）
+        const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
+        
+        // 移动这些车（尽量向上移动但不进入停车场）
         for (const carToMove of carsToMove) {
             const oldHead = carToMove.headMap;
             
-            // 计算新的位置（向上移动一个单位，但确保不进入停车场）
-            let newHeadPos = Math.max(mapH, carToMove.headMap - 1);
+            // 尽量向上移动：从当前车头-1开始向上遍历，找到最远的可移动位置
+            let newHeadPos = carToMove.headMap;
+            for (let index = carToMove.headMap - 1; index >= mapH; index--) {
+                // 检查这个位置及后续位置是否都可用
+                let canMove = true;
+                for (let checkPos = index; checkPos < index + carToMove.type; checkPos++) {
+                    if (this.isValidMapPosition(map, checkPos, x) && map[checkPos][x] !== 0) {
+                        canMove = false;
+                        break;
+                    }
+                }
+                
+                if (canMove) {
+                    newHeadPos = index;
+                } else {
+                    break;
+                }
+            }
+            
+            // 如果没有找到更好的位置，至少确保不进入停车场
+            newHeadPos = Math.max(mapH, newHeadPos);
+            
+            // 清除原位置
+            for (let i = carToMove.headMap; i <= carToMove.tailMap; i++) {
+                if (this.isValidMapPosition(map, i, x)) {
+                    map[i][x] = 0;
+                }
+            }
             
             // 更新停放信息
             carToMove.headMap = newHeadPos;
             carToMove.tailMap = newHeadPos + carToMove.type - 1;
             
+            // 设置新位置
+            for (let i = carToMove.headMap; i <= carToMove.tailMap; i++) {
+                if (this.isValidMapPosition(map, i, x)) {
+                    map[i][x] = carToMove.sort;
+                }
+            }
+            
             // 打印移动信息
-            console.log(`相关车辆向上移动：outerMap=${outerMap}, sort=${carToMove.sort}, 车头位置=${carToMove.headMap}，车尾位置=${carToMove.tailMap}`);
+            console.log(`相关车辆尽量向上移动：outerMap=${outerMap}, sort=${carToMove.sort}, 车头位置=${carToMove.headMap}，车尾位置=${carToMove.tailMap}`);
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
@@ -870,6 +1250,247 @@ export class CarManager extends Component {
             
             // 更新下一个车的位置
             nextHeadPosition = carToMove.tailMap + 1;
+        }
+    }
+
+    /**
+     * 移动相同Rx且Sort比它大的车向左
+     * 根据需求（14.2.4）：要确保和当前点击的汽车相邻，即Sort+1的车头刚好在Sort的车尾左边一格
+     */
+    private moveSimilarRightCarsWithHigherSortLeft(outerMap: string, currentSort: number, map: number[][], mapW: number): void {
+        // 找到所有相同outerMap且Sort比当前车大的车
+        const carsToMove = this.carParkingInfos.filter(info => 
+            info.outerMap === outerMap && 
+            info.sort > currentSort
+        ).sort((a, b) => a.sort - b.sort); // 按sort升序排列
+
+        // 找到当前车的信息
+        const currentCar = this.carParkingInfos.find(info => 
+            info.outerMap === outerMap && 
+            info.sort === currentSort
+        );
+        
+        if (!currentCar) return;
+        
+        const x = this.getCarRowPosition(outerMap);
+        let nextHeadPosition = currentCar.headMap - 1; // Sort+1的车头应该在当前车的车头左边一格
+        
+        for (const carInfo of carsToMove) {
+            console.log(`检查汽车${carInfo.outerMap}sort${carInfo.sort}: 车头=${carInfo.headMap}, 车尾=${carInfo.tailMap}, mapW=${mapW}`);
+            // 检查汽车是否有一部分在停车场外
+            const isPartiallyOutside = carInfo.headMap < 0 || carInfo.tailMap < 0 || carInfo.headMap >= mapW || carInfo.tailMap >= mapW;
+            console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}是否在停车场外: ${isPartiallyOutside}`);
+            
+            if (isPartiallyOutside) {
+                console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}开始联动移动`);
+                const oldHead = carInfo.headMap;
+                
+                // 清除原位置
+                for (let i = 0; i < map[x].length; i++) {
+                    if (map[x][i] === carInfo.sort) {
+                        map[x][i] = 0;
+                    }
+                }
+                
+                // 更新位置，确保相邻
+                carInfo.headMap = nextHeadPosition;
+                carInfo.tailMap = nextHeadPosition - carInfo.type + 1;
+                
+                // 设置新位置（如果在停车场内）
+                for (let i = carInfo.headMap; i <= carInfo.tailMap; i++) {
+                    if (this.isValidMapPosition(map, x, i)) {
+                        map[x][i] = carInfo.sort;
+                    }
+                }
+                
+                console.log(`Sort ${carInfo.sort} 的车也向左移动，确保与当前车相邻`);
+                
+                // 播放动画
+                if (carInfo.node && carInfo.node.isValid) {
+                    const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (oldHead - carInfo.headMap);
+                    this.playCarMoveAnimation(carInfo.node, new Vec3(moveDistance, 0, 0), 'none');
+                }
+                
+                // 下一辆车的车头位置应该在当前车的车头左边
+                nextHeadPosition = carInfo.headMap - 1;
+            }
+        }
+    }
+
+    /**
+     * 移动相同Rx且Sort比它小的车向左
+     */
+    private moveSimilarRightCarsWithLowerSortLeft(outerMap: string, currentSort: number, map: number[][], mapW: number): void {
+        // 找到所有相同outerMap且Sort比当前车小的车
+        const carsToMove = this.carParkingInfos.filter(info => 
+            info.outerMap === outerMap && 
+            info.sort < currentSort
+        ).sort((a, b) => b.sort - a.sort); // 按sort降序排列
+
+        for (const carInfo of carsToMove) {
+            // 检查汽车是否在停车场外（使用inPark字段）
+            const isPartiallyOutside = carInfo.inPark === 0;
+            console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}检查停车场外条件: inPark=${carInfo.inPark}, isPartiallyOutside=${isPartiallyOutside}`);
+            
+            if (isPartiallyOutside) {
+                const x = this.getCarRowPosition(carInfo.outerMap);
+                
+                // 移动到停车场外，但不进入停车场
+                carInfo.tailMap = mapW - 1;
+                carInfo.headMap = carInfo.tailMap - carInfo.type + 1;
+                
+                // 清除原位置
+                for (let i = 0; i < map[x].length; i++) {
+                    if (map[x][i] === carInfo.sort) {
+                        map[x][i] = 0;
+                    }
+                }
+                
+                // 设置新位置
+                for (let i = carInfo.headMap; i <= carInfo.tailMap; i++) {
+                    if (this.isValidMapPosition(map, x, i)) {
+                        map[x][i] = carInfo.sort;
+                    }
+                }
+                
+                console.log(`Sort ${carInfo.sort} 的车也向左移动到停车场外`);
+            }
+        }
+    }
+
+    /**
+     * 移动相同Rx且Sort比它大的车向右
+     * 根据需求（14.2.3）：汽车向右开后，Rx里边有sort比当前车大的车也要一起向右开，但不会开进停车场
+     */
+    private moveSimilarRightCarsWithHigherSortRight(outerMap: string, currentSort: number, map: number[][], mapW: number): void {
+        console.log(`开始联动移动: 查找${outerMap}中sort大于${currentSort}的汽车`);
+        // 找到所有相同outerMap且Sort比当前车大的车
+        const carsToMove = this.carParkingInfos.filter(info => 
+            info.outerMap === outerMap && 
+            info.sort > currentSort
+        ).sort((a, b) => a.sort - b.sort); // 按sort升序排列
+
+        console.log(`找到${carsToMove.length}辆需要联动移动的汽车:`, carsToMove.map(car => `${car.outerMap}sort${car.sort}`));
+
+        for (const carInfo of carsToMove) {
+            // 检查汽车是否在停车场外
+            const isOutsidePark = carInfo.inPark === 0;
+            console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}: inPark=${carInfo.inPark}, isOutsidePark=${isOutsidePark}`);
+            
+            if (isOutsidePark) {
+                const x = this.getCarRowPosition(carInfo.outerMap);
+                const oldHead = carInfo.headMap;
+                
+                // 尽量向右移动，但不能进入停车场：从当前车头+1开始向右遍历，找到最远的可移动位置
+                let newHeadPosition = carInfo.headMap;
+                console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}联动移动计算: 当前车头=${carInfo.headMap}, 车型=${carInfo.type}, mapW=${mapW}`);
+                
+                for (let index = carInfo.headMap + 1; index < map[x].length; index++) {
+                    // 检查这个位置及后续位置是否都可用
+                    let canMove = true;
+                    for (let checkPos = index; checkPos < index + carInfo.type; checkPos++) {
+                        if (this.isValidMapPosition(map, x, checkPos) && map[x][checkPos] !== 0) {
+                            canMove = false;
+                            break;
+                        }
+                    }
+                    
+                    // 根据规则14.2.3：联动移动的汽车不会开进停车场
+                    // 检查移动后是否会进入停车场（车尾位置 >= 0 表示进入停车场）
+                    const newTailPosition = index - carInfo.type + 1;
+                    const wouldEnterPark = newTailPosition >= 0;
+                    
+                    console.log(`检查位置${index}: canMove=${canMove}, 新车尾=${newTailPosition}, wouldEnterPark=${wouldEnterPark}`);
+                    
+                    if (canMove && !wouldEnterPark) {
+                        newHeadPosition = index;
+                        console.log(`可以移动到位置${index}`);
+                    } else {
+                        console.log(`不能移动到位置${index}，停止搜索`);
+                        break;
+                    }
+                }
+                
+                // 如果没有找到更好的位置，保持原位置
+                if (newHeadPosition === carInfo.headMap) {
+                    continue;
+                }
+                
+                // 清除原位置
+                for (let i = 0; i < map[x].length; i++) {
+                    if (map[x][i] === carInfo.sort) {
+                        map[x][i] = 0;
+                    }
+                }
+                
+                // 更新位置
+                carInfo.headMap = newHeadPosition;
+                carInfo.tailMap = newHeadPosition - carInfo.type + 1;
+                
+                // 根据规则14.2.3：联动移动的汽车不会开进停车场，所以inPark状态保持为0
+                console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}联动移动，保持在停车场外，inPark=${carInfo.inPark}`);
+                
+                // 设置新位置（如果在停车场内）
+                for (let i = carInfo.headMap; i <= carInfo.tailMap; i++) {
+                    if (this.isValidMapPosition(map, x, i)) {
+                        map[x][i] = carInfo.sort;
+                    }
+                }
+                
+                console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}联动移动，从位置${oldHead}移动到${newHeadPosition}`);
+                
+                // 播放动画
+                if (carInfo.node && carInfo.node.isValid) {
+                    const moveDistance = CONSTANTS.CAR_POSITION_OFFSET * (newHeadPosition - oldHead);
+                    this.playCarMoveAnimation(carInfo.node, new Vec3(moveDistance, 0, 0), 'none');
+                }
+            } else {
+                console.log(`汽车${carInfo.outerMap}sort${carInfo.sort}不在停车场外，跳过联动移动`);
+            }
+        }
+    }
+
+    /**
+     * 获取汽车所在行的位置
+     */
+    private getCarRowPosition(outerMap: string): number {
+        // 从outerMap中提取行号，例如 "R0" -> 0, "R1" -> 1
+        const match = outerMap.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+    }
+
+    /**
+     * 更新右方向汽车移动后的地图数据
+     */
+    private updateMapForRightCarMovement(
+        map: number[][], 
+        newHead: number, 
+        newTail: number, 
+        oldHead: number, 
+        oldTail: number, 
+        x: number, 
+        carType: number
+    ): void {
+        console.log(`更新地图数据: 清除原位置[${oldTail}, ${oldHead}], 设置新位置[${newTail}, ${newHead}]`);
+        
+        // 清除原位置 - 对于Rx汽车，车尾index <= 车头index
+        const clearStart = Math.min(oldHead, oldTail);
+        const clearEnd = Math.max(oldHead, oldTail);
+        for (let i = clearStart; i <= clearEnd; i++) {
+            if (this.isValidMapPosition(map, x, i)) {
+                console.log(`清除位置[${x}][${i}]`);
+                map[x][i] = 0;
+            }
+        }
+        
+        // 设置新位置 - 对于Rx汽车，车尾index <= 车头index
+        const setStart = Math.min(newHead, newTail);
+        const setEnd = Math.max(newHead, newTail);
+        for (let i = setStart; i <= setEnd; i++) {
+            if (this.isValidMapPosition(map, x, i)) {
+                console.log(`设置位置[${x}][${i}] = ${carType}`);
+                map[x][i] = carType;
+            }
         }
     }
 
@@ -933,14 +1554,18 @@ export class CarManager extends Component {
      * 根据停车状态更新计数
      */
     private updateParkingCount(parkingStatusChange?: 'enter' | 'exit' | 'none'): void {
+        console.log(`updateParkingCount被调用，参数: ${parkingStatusChange}`);
+        console.log(`当前成功停车数: ${this.successfulParks}`);
+        
         if (parkingStatusChange === 'enter') {
             this.successfulParks++;
             console.log(`汽车进入停车场，成功停车计数增加到: ${this.successfulParks}`);
         } else if (parkingStatusChange === 'exit') {
             this.successfulParks = Math.max(0, this.successfulParks - 1);
             console.log(`汽车撤出停车场，成功停车计数减少到: ${this.successfulParks}`);
+        } else {
+            console.log(`停车状态无变化(${parkingStatusChange})，成功停车数保持: ${this.successfulParks}`);
         }
-        // parkingStatusChange === 'none' 时不更新计数
         
         // 检查是否通关
         this.checkLevelComplete();
