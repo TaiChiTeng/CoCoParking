@@ -59,7 +59,16 @@ export class GameManager extends Component {
             }
         } else {
             console.error('mapManagerNode is not assigned in GameManager');
-        }    }
+        }
+
+        // 设置CarManager的UIManager引用
+        if (this.carManager && this.uiManager) {
+            this.carManager.uiManager = this.uiManager;
+            console.log('CarManager的UIManager引用已设置');
+        } else {
+            console.error('无法设置CarManager的UIManager引用：carManager或uiManager为null');
+        }
+    }
 
     // 设置当前关卡
     public setCurrentLevel(level: number): void {
