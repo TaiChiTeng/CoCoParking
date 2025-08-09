@@ -8,6 +8,16 @@ interface CarPositionStrategy {
     updateOffset(type: number): void;
 }
 
+// 汽车停放信息接口
+interface CarParkingInfo {
+    outerMap: string;
+    sort: number;
+    type: number;
+    headMap: number;
+    tailMap: number;
+    node: Node;
+}
+
 // 上方向汽车位置策略
 class UpperCarPositionStrategy implements CarPositionStrategy {
     private offsetY: number = 0;
@@ -89,11 +99,13 @@ export class CarManager extends Component {
     private currentLevel: number = 1; // 当前关卡
     private positionStrategies: {[key: string]: CarPositionStrategy} = {};
     private nodeSortIndexes: {[key: string]: number} = {};
+    private carParkingInfos: CarParkingInfo[] = []; // 存储所有汽车的停放信息
 
     // 初始化汽车
     public initCars(level: number): void {
         this.currentLevel = level;
         this.successfulParks = 0;
+        this.carParkingInfos = []; // 清空汽车停放信息
         console.log('成功停车计数已重置为0');
 
         if (!this.nodeCar) {
@@ -141,11 +153,11 @@ export class CarManager extends Component {
         for (const nodeName of nodeNames) {
             this.nodeSortIndexes[nodeName] = 0;
 
-            if (nodeName.startsWith('U')) {
+            if (nodeName.includes('U')) {
                 this.positionStrategies[nodeName] = new UpperCarPositionStrategy();
-            } else if (nodeName.startsWith('L')) {
+            } else if (nodeName.includes('L')) {
                 this.positionStrategies[nodeName] = new LeftCarPositionStrategy();
-            } else if (nodeName.startsWith('R')) {
+            } else if (nodeName.includes('R')) {
                 this.positionStrategies[nodeName] = new RightCarPositionStrategy();
             }
         }
@@ -153,7 +165,7 @@ export class CarManager extends Component {
 
     // 创建单个汽车
     private createCar(car: {outerMap: string, sort: number, type: number}): void {
-        const {outerMap, type} = car;
+        const {outerMap, sort, type} = car;
         const nodeName = `node${outerMap}`; // 例如: nodeU0
         const parentNode = this.nodeCar.getChildByName(nodeName);
 
@@ -185,8 +197,67 @@ export class CarManager extends Component {
         // 设置汽车位置
         this.setCarPosition(nodeName, carNode, type);
 
+        // 计算并存储汽车停放信息
+        const mapData = MapData.getMapDataByLevel(this.currentLevel);
+        let headMap = 0;
+        let tailMap = 0;
+
+        if (outerMap.startsWith('U')) {
+            // Ux汽车，假设地图是垂直方向，所以headMap是地图高度-1，tailMap是headMap+type-1
+            const mapH = mapData.MapH;
+            headMap = mapH; 
+            tailMap = headMap + type - 1;
+        } else if (outerMap.startsWith('L')) {
+            // Lx汽车
+            const mapW = mapData.MapW;
+            headMap = mapW;
+            tailMap = headMap + type - 1;
+        } else if (outerMap.startsWith('R')) {
+            // Rx汽车
+            headMap = -1;
+            tailMap = headMap - type + 1;
+        }
+
+        // 考虑sort位置
+        if (sort > 0) {
+            if (outerMap.startsWith('U')) {
+                // 上方向汽车，sort越大越靠下
+                const prevInfo = this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort - 1);
+                if (prevInfo) {
+                    headMap = prevInfo.tailMap + 1;
+                    tailMap = headMap + type - 1;
+                }
+            } else if (outerMap.startsWith('L')) {
+                // 左方向汽车，sort越大越靠右
+                const prevInfo = this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort - 1);
+                if (prevInfo) {
+                    headMap = prevInfo.tailMap + 1;
+                    tailMap = headMap + type - 1;
+                }
+            } else if (outerMap.startsWith('R')) {
+                // 右方向汽车，sort越大越靠左
+                const prevInfo = this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort - 1);
+                if (prevInfo) {
+                    headMap = prevInfo.tailMap - 1;
+                    tailMap = headMap - type + 1;
+                }
+            }
+        }
+
+        // 存储汽车停放信息
+        const parkingInfo = {
+            outerMap,
+            sort,
+            type,
+            headMap,
+            tailMap,
+            node: carNode
+        };
+        this.carParkingInfos.push(parkingInfo);
+        console.log('存储汽车停放信息:', parkingInfo);
+
         // 设置汽车点击事件
-        this.setupCarClickEvents(carNode, parentNode, type);
+        this.setupCarClickEvents(carNode, parentNode, type, sort);
     }
 
     // 获取汽车预制体
@@ -237,30 +308,36 @@ export class CarManager extends Component {
     }
 
     // 设置汽车点击事件
-    private setupCarClickEvents(carNode: Node, parentNode: Node, type: number) {
+    private setupCarClickEvents(carNode: Node, parentNode: Node, type: number, sort: number) {
         // 为汽车添加触摸点击事件
         carNode.on(Node.EventType.TOUCH_END, () => {
-                this.handleCarClick(carNode, parentNode, type);
+                this.handleCarClick(carNode, parentNode, type, sort);
             }, this);
 
         // 为汽车添加鼠标点击事件（用于桌面平台）
-        carNode.on(Node.EventType.MOUSE_UP, () => {
-                this.handleCarClick(carNode, parentNode, type);
-            }, this);
+        // carNode.on(Node.EventType.MOUSE_UP, () => {
+        //         this.handleCarClick(carNode, parentNode, type, sort);
+        //     }, this);
     }
 
     // 处理汽车点击逻辑
-    private handleCarClick(carNode: Node, parentNode: Node, type: number) {
+    private handleCarClick(carNode: Node, parentNode: Node, type: number, sort: number) {
         // 获取汽车世界坐标
         const worldPos = carNode.worldPosition;
-        
+
         // 获取当前关卡地图数据
         const mapData = MapData.getMapDataByLevel(this.currentLevel);
         const mapInfo = mapData ? JSON.stringify(mapData.Map) : '无地图数据';
-        
-        // 获取汽车的sort属性（从父节点名称中提取）
-        const sort = parseInt(parentNode.name.replace(/[^0-9]/g, ''));
-        
+
+        const outerMap = parentNode.name.replace('node', '');
+
+        // 查找汽车停放信息
+        const parkingInfo = this.carParkingInfos.find(info => 
+            info.outerMap === outerMap && 
+            info.sort === sort && 
+            info.type === type
+        );
+
         // 打印所需信息
         console.log(`汽车被点击!`);
         console.log(`- 父节点: ${parentNode.name}`);
@@ -268,6 +345,12 @@ export class CarManager extends Component {
         console.log(`- sort: ${sort}`);
         console.log(`- 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`);
         console.log(`- map: ${mapInfo}`);
+        if (parkingInfo) {
+            console.log(`- 车头位置: ${parkingInfo.headMap}`);
+            console.log(`- 车尾位置: ${parkingInfo.tailMap}`);
+        } else {
+            console.log(`- 未找到停放信息`);
+        }
     }
 
     // 增加成功停车计数
@@ -289,5 +372,10 @@ export class CarManager extends Component {
     // 获取当前关卡
     public getCurrentLevel(): number {
         return this.currentLevel;
+    }
+
+    // 根据outerMap和sort获取汽车停放信息
+    public getCarParkingInfo(outerMap: string, sort: number): CarParkingInfo | null {
+        return this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort);
     }
 }
