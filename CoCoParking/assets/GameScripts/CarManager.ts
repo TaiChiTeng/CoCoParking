@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Prefab, instantiate, Vec3, tween } from 'cc';
 import { MapData } from './MapData';
+import { UIManager } from './UIManager';
 const { ccclass, property } = _decorator;
 
 // 汽车位置策略接口
@@ -126,6 +127,9 @@ export class CarManager extends Component {
 
     @property(Prefab)
     public itemCarR3: Prefab = null; // 右方向汽车预制3
+
+    @property(UIManager)
+    public uiManager: UIManager = null; // UI管理器引用
 
     private successfulParks: number = 0;
     private currentLevel: number = 1;
@@ -675,8 +679,18 @@ export class CarManager extends Component {
         // 更新地图数据
         this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead + parkingInfo.type - 1, x, parkingInfo.type);
 
+        // 判断停车状态变化
+        const wasOutsidePark = oldHead >= mapH;
+        const isNowInsidePark = parkingInfo.tailMap < mapH;
+        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
+        
+        if (wasOutsidePark && isNowInsidePark) {
+            parkingStatusChange = 'enter';
+            console.log("汽车从停车场外完全进入停车场内");
+        }
+        
         // 播放动画
-        this.playCarMoveAnimation(carNode, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0));
+        this.playCarMoveAnimation(carNode, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0), parkingStatusChange);
     }
 
     /**
@@ -727,9 +741,19 @@ export class CarManager extends Component {
         this.moveSimilarCarsWithHigherSortDown(parkingInfo.outerMap, parkingInfo.sort, map, mapH, parkingInfo.tailMap);
 
         
+        // 判断停车状态变化 - 向下移动进入停车场
+        const wasOutsidePark = oldHead >= mapH;
+        const isNowInsidePark = parkingInfo.tailMap < mapH;
+        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
+        
+        if (wasOutsidePark && isNowInsidePark) {
+            parkingStatusChange = 'enter';
+            console.log("汽车向下移动从停车场外完全进入停车场内");
+        }
+        
         // 播放动画
         const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
-        this.playCarMoveAnimation(carNode, new Vec3(0, moveDistance, 0));
+        this.playCarMoveAnimation(carNode, new Vec3(0, moveDistance, 0), parkingStatusChange);
     }
 
     /**
@@ -755,9 +779,19 @@ export class CarManager extends Component {
         // 移动相同Ux且Sort比它大的车，确保相邻
         this.moveSimilarCarsWithHigherSortDown(outerMap, parkingInfo.sort, map, mapH, parkingInfo.tailMap);
         
+        // 判断停车状态变化 - 撤出停车场
+        const wasInsidePark = oldHead < mapH;
+        const isNowOutsidePark = parkingInfo.headMap >= mapH;
+        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
+        
+        if (wasInsidePark && isNowOutsidePark) {
+            parkingStatusChange = 'exit';
+            console.log("汽车撤出停车场");
+        }
+        
         // 播放动画
         const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
-        this.playCarMoveAnimation(carNode, new Vec3(0, moveDistance, 0));
+        this.playCarMoveAnimation(carNode, new Vec3(0, moveDistance, 0), parkingStatusChange);
     }
 
     /**
@@ -789,7 +823,7 @@ export class CarManager extends Component {
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
-                this.playCarMoveAnimation(carToMove.node, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0));
+                this.playCarMoveAnimation(carToMove.node, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0), 'none');
             }
         }
     }
@@ -831,7 +865,7 @@ export class CarManager extends Component {
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
                 const moveDistance = carToMove.headMap - oldHead;
-                this.playCarMoveAnimation(carToMove.node, new Vec3(0, -CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0));
+                this.playCarMoveAnimation(carToMove.node, new Vec3(0, -CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0), 'none');
             }
             
             // 更新下一个车的位置
@@ -869,12 +903,12 @@ export class CarManager extends Component {
     /**
      * 播放汽车移动动画
      */
-    private playCarMoveAnimation(carNode: Node, targetOffset: Vec3): void {
+    private playCarMoveAnimation(carNode: Node, targetOffset: Vec3, parkingStatusChange?: 'enter' | 'exit' | 'none'): void {
         this.isAnimationPlaying = true;
         this.moveCarAnimation(carNode, targetOffset, this.carAnimDuration, () => {
             this.isAnimationPlaying = false;
-            // 动画播放完毕后更新成功停车计数
-            this.incrementSuccessfulPark();
+            // 动画播放完毕后根据停车状态更新计数
+            this.updateParkingCount(parkingStatusChange);
         });
     }
 
@@ -896,11 +930,47 @@ export class CarManager extends Component {
     }
 
     /**
-     * 增加成功停车计数
+     * 根据停车状态更新计数
+     */
+    private updateParkingCount(parkingStatusChange?: 'enter' | 'exit' | 'none'): void {
+        if (parkingStatusChange === 'enter') {
+            this.successfulParks++;
+            console.log(`汽车进入停车场，成功停车计数增加到: ${this.successfulParks}`);
+        } else if (parkingStatusChange === 'exit') {
+            this.successfulParks = Math.max(0, this.successfulParks - 1);
+            console.log(`汽车撤出停车场，成功停车计数减少到: ${this.successfulParks}`);
+        }
+        // parkingStatusChange === 'none' 时不更新计数
+        
+        // 检查是否通关
+        this.checkLevelComplete();
+    }
+
+    /**
+     * 检查是否通关
+     */
+    private checkLevelComplete(): void {
+        const totalCars = this.carParkingInfos.length;
+        console.log(`当前成功停车数: ${this.successfulParks}, 本关汽车总数: ${totalCars}`);
+        
+        if (this.successfulParks === totalCars && totalCars > 0) {
+            console.log('===== 通关条件达成！所有汽车都已成功停车 =====');
+            if (this.uiManager) {
+                this.uiManager.showLevelClearOnly();
+            } else {
+                console.error('UIManager引用未设置，无法显示通关界面');
+            }
+        }
+    }
+
+    /**
+     * 增加成功停车计数（保留原方法供外部调用）
      */
     public incrementSuccessfulPark(): void {
         this.successfulParks++;
         console.log(`成功停车计数增加到: ${this.successfulParks}`);
+        // 检查是否通关
+        this.checkLevelComplete();
     }
 
     /**
