@@ -6,6 +6,7 @@ const { ccclass, property } = _decorator;
 interface CarPositionStrategy {
     calculatePosition(sortIndex: number, type: number): Vec3;
     updateOffset(type: number): void;
+    reset(): void;
 }
 
 // 汽车停放信息接口
@@ -17,7 +18,8 @@ interface CarParkingInfo {
     tailMap: number;
     node: Node;
 }
-// 定义汽车移动情况全局枚举
+
+// 汽车移动状态枚举
 enum CarMovementStatus {
     CAN_MOVE_UP,
     CAN_MOVE_DOWN,
@@ -27,18 +29,35 @@ enum CarMovementStatus {
     PLAYING_ANIM
 }
 
+// 汽车方向枚举
+enum CarDirection {
+    UP = 'U',
+    LEFT = 'L',
+    RIGHT = 'R'
+}
+
+// 常量定义
+const CONSTANTS = {
+    CAR_POSITION_OFFSET: 100,
+    DEFAULT_ANIM_DURATION: 0.5,
+    MAX_CAR_TYPE: 3,
+    MIN_CAR_TYPE: 1
+} as const;
+
 // 上方向汽车位置策略
 class UpperCarPositionStrategy implements CarPositionStrategy {
     private offsetY: number = 0;
 
     calculatePosition(sortIndex: number, type: number): Vec3 {
-        const posX = 0;
-        const posY = this.offsetY;
-        return new Vec3(posX, posY, 0);
+        return new Vec3(0, this.offsetY, 0);
     }
 
     updateOffset(type: number): void {
-        this.offsetY -= 100 * type;
+        this.offsetY -= CONSTANTS.CAR_POSITION_OFFSET * type;
+    }
+
+    reset(): void {
+        this.offsetY = 0;
     }
 }
 
@@ -47,13 +66,15 @@ class LeftCarPositionStrategy implements CarPositionStrategy {
     private offsetX: number = 0;
 
     calculatePosition(sortIndex: number, type: number): Vec3 {
-        const posX = this.offsetX;
-        const posY = 0;
-        return new Vec3(posX, posY, 0);
+        return new Vec3(this.offsetX, 0, 0);
     }
 
     updateOffset(type: number): void {
-        this.offsetX += 100 * type;
+        this.offsetX += CONSTANTS.CAR_POSITION_OFFSET * type;
+    }
+
+    reset(): void {
+        this.offsetX = 0;
     }
 }
 
@@ -62,13 +83,15 @@ class RightCarPositionStrategy implements CarPositionStrategy {
     private offsetX: number = 0;
 
     calculatePosition(sortIndex: number, type: number): Vec3 {
-        const posX = this.offsetX;
-        const posY = 0;
-        return new Vec3(posX, posY, 0);
+        return new Vec3(this.offsetX, 0, 0);
     }
 
     updateOffset(type: number): void {
-        this.offsetX -= 100 * type;
+        this.offsetX -= CONSTANTS.CAR_POSITION_OFFSET * type;
+    }
+
+    reset(): void {
+        this.offsetX = 0;
     }
 }
 
@@ -104,48 +127,72 @@ export class CarManager extends Component {
     @property(Prefab)
     public itemCarR3: Prefab = null; // 右方向汽车预制3
 
-    private successfulParks: number = 0; // 成功停车计数
-    private currentLevel: number = 1; // 当前关卡
-    private positionStrategies: {[key: string]: CarPositionStrategy} = {};
-    private nodeSortIndexes: {[key: string]: number} = {};
-    private carParkingInfos: CarParkingInfo[] = []; // 存储所有汽车的停放信息
-    private carAnimDuration: number = 0.5; // 汽车动画播放时间
+    private successfulParks: number = 0;
+    private currentLevel: number = 1;
+    private positionStrategies: Map<string, CarPositionStrategy> = new Map();
+    private nodeSortIndexes: Map<string, number> = new Map();
+    private carParkingInfos: CarParkingInfo[] = [];
+    private carAnimDuration: number = CONSTANTS.DEFAULT_ANIM_DURATION;
+    private isAnimationPlaying: boolean = false;
+    
+    // 节点名称常量
+    private readonly NODE_NAMES = [
+        'nodeU0', 'nodeU1', 'nodeU2', 'nodeU3', 'nodeU4',
+        'nodeL0', 'nodeL1', 'nodeL2', 'nodeL3', 'nodeL4', 'nodeL5',
+        'nodeR0', 'nodeR1', 'nodeR2', 'nodeR3', 'nodeR4', 'nodeR5'
+    ] as const;
 
-    // 初始化汽车
+    /**
+     * 初始化汽车
+     * @param level 关卡等级
+     */
     public initCars(level: number): void {
-        this.currentLevel = level;
-        this.successfulParks = 0;
-        this.carParkingInfos = []; // 清空汽车停放信息
-        console.log('成功停车计数已重置为0');
+        if (!this.validateLevel(level)) {
+            console.error(`Invalid level: ${level}`);
+            return;
+        }
 
         if (!this.nodeCar) {
             console.error('nodeCar is not assigned in CarManager. Please assign the nodeCar property in the inspector.');
             return;
         }
 
-        // 初始化节点名称列表
-        const nodeNames = ['nodeU0', 'nodeU1', 'nodeU2', 'nodeU3', 'nodeU4', 'nodeL0', 'nodeL1', 'nodeL2', 'nodeL3', 'nodeL4', 'nodeL5', 'nodeR0', 'nodeR1', 'nodeR2', 'nodeR3', 'nodeR4', 'nodeR5'];
-
-        // 清除现有汽车并初始化策略和索引
-        this.clearExistingCars(nodeNames);
-        this.initializeStrategiesAndIndexes(nodeNames);
-
-        // 获取当前关卡的汽车数据
+        this.resetGameState(level);
+        this.clearExistingCars();
+        this.initializeStrategiesAndIndexes();
+        
         const carData = MapData.getCarDataByLevel(level);
-        if (!carData || carData.length === 0) {
-            console.log(`No car data for level ${level}`);
+        if (!carData?.length) {
+            console.warn(`No car data for level ${level}`);
             return;
         }
 
-        // 创建汽车
-        for (const car of carData) {
-            this.createCar(car);
-        }
+        this.createCars(carData);
     }
 
-    // 清除现有汽车
-    private clearExistingCars(nodeNames: string[]): void {
-        for (const nodeName of nodeNames) {
+    /**
+     * 验证关卡等级
+     */
+    private validateLevel(level: number): boolean {
+        return Number.isInteger(level) && level > 0;
+    }
+
+    /**
+     * 重置游戏状态
+     */
+    private resetGameState(level: number): void {
+        this.currentLevel = level;
+        this.successfulParks = 0;
+        this.carParkingInfos = [];
+        this.isAnimationPlaying = false;
+        this.resetAllStrategies();
+    }
+
+    /**
+     * 清除现有汽车
+     */
+    private clearExistingCars(): void {
+        for (const nodeName of this.NODE_NAMES) {
             const node = this.nodeCar.getChildByName(nodeName);
             if (node) {
                 node.removeAllChildren();
@@ -155,107 +202,147 @@ export class CarManager extends Component {
         }
     }
 
-    // 初始化位置策略和节点索引
-    private initializeStrategiesAndIndexes(nodeNames: string[]): void {
-        this.positionStrategies = {};
-        this.nodeSortIndexes = {};
+    /**
+     * 初始化位置策略和节点索引
+     */
+    private initializeStrategiesAndIndexes(): void {
+        this.positionStrategies.clear();
+        this.nodeSortIndexes.clear();
 
-        for (const nodeName of nodeNames) {
-            this.nodeSortIndexes[nodeName] = 0;
-
-            if (nodeName.includes('U')) {
-                this.positionStrategies[nodeName] = new UpperCarPositionStrategy();
-            } else if (nodeName.includes('L')) {
-                this.positionStrategies[nodeName] = new LeftCarPositionStrategy();
-            } else if (nodeName.includes('R')) {
-                this.positionStrategies[nodeName] = new RightCarPositionStrategy();
+        for (const nodeName of this.NODE_NAMES) {
+            this.nodeSortIndexes.set(nodeName, 0);
+            
+            const strategy = this.createPositionStrategy(nodeName);
+            if (strategy) {
+                this.positionStrategies.set(nodeName, strategy);
             }
         }
     }
 
-    // 创建单个汽车
+    /**
+     * 创建位置策略
+     */
+    private createPositionStrategy(nodeName: string): CarPositionStrategy | null {
+        if (nodeName.includes('U')) {
+            return new UpperCarPositionStrategy();
+        } else if (nodeName.includes('L')) {
+            return new LeftCarPositionStrategy();
+        } else if (nodeName.includes('R')) {
+            return new RightCarPositionStrategy();
+        }
+        console.warn(`Unknown node type for ${nodeName}`);
+        return null;
+    }
+
+    /**
+     * 批量创建汽车
+     */
+    private createCars(carData: Array<{outerMap: string, sort: number, type: number}>): void {
+        for (const car of carData) {
+            try {
+                this.createCar(car);
+            } catch (error) {
+                console.error(`Failed to create car:`, car, error);
+            }
+        }
+    }
+
+    /**
+     * 创建单个汽车
+     */
     private createCar(car: {outerMap: string, sort: number, type: number}): void {
         const {outerMap, sort, type} = car;
-        const nodeName = `node${outerMap}`; // 例如: nodeU0
+        
+        if (!this.validateCarData(car)) {
+            throw new Error(`Invalid car data: ${JSON.stringify(car)}`);
+        }
+
+        const nodeName = `node${outerMap}`;
         const parentNode = this.nodeCar.getChildByName(nodeName);
 
         if (!parentNode) {
-            console.error(`Cannot find parent node: ${nodeName} under nodeCar`);
-            return;
+            throw new Error(`Cannot find parent node: ${nodeName} under nodeCar`);
         }
 
-        // 获取对应的汽车预制
         const carPrefab = this.getCarPrefab(outerMap, type);
         if (!carPrefab) {
-            return;
+            throw new Error(`Cannot get car prefab for ${outerMap}, type ${type}`);
         }
 
-        // 创建汽车实例
         const carNode = instantiate(carPrefab);
         if (!carNode) {
-            console.error(`Failed to instantiate car prefab for type ${type}`);
-            return;
+            throw new Error(`Failed to instantiate car prefab for type ${type}`);
         }
 
-        // 设置父节点
         parentNode.addChild(carNode);
-
-        // 更新排序索引
-        this.nodeSortIndexes[nodeName]++;
-        console.log(`Created car type ${type} at ${nodeName}, sort: ${this.nodeSortIndexes[nodeName]}`);
-
-        // 设置汽车位置
+        this.updateNodeSortIndex(nodeName);
         this.setCarPosition(nodeName, carNode, type);
+        
+        const parkingInfo = this.calculateParkingInfo(outerMap, sort, type, carNode);
+        this.carParkingInfos.push(parkingInfo);
+        this.setupCarClickEvents(carNode, parentNode, type, sort);
+    }
 
-        // 计算并存储汽车停放信息
+    /**
+     * 验证汽车数据
+     */
+    private validateCarData(car: {outerMap: string, sort: number, type: number}): boolean {
+        const {outerMap, sort, type} = car;
+        return outerMap && 
+               typeof sort === 'number' && sort >= 0 &&
+               typeof type === 'number' && type >= CONSTANTS.MIN_CAR_TYPE && type <= CONSTANTS.MAX_CAR_TYPE;
+    }
+
+    /**
+     * 更新节点排序索引
+     */
+    private updateNodeSortIndex(nodeName: string): void {
+        const currentIndex = this.nodeSortIndexes.get(nodeName) || 0;
+        this.nodeSortIndexes.set(nodeName, currentIndex + 1);
+    }
+
+    /**
+     * 计算汽车停放信息
+     */
+    private calculateParkingInfo(outerMap: string, sort: number, type: number, carNode: Node): CarParkingInfo {
         const mapData = MapData.getMapDataByLevel(this.currentLevel);
+        if (!mapData) {
+            throw new Error(`Cannot get map data for level ${this.currentLevel}`);
+        }
+
         let headMap = 0;
         let tailMap = 0;
 
-        if (outerMap.startsWith('U')) {
-            // Ux汽车，假设地图是垂直方向，所以headMap是地图高度-1，tailMap是headMap+type-1
-            const mapH = mapData.MapH;
-            headMap = mapH; 
+        // 根据方向计算初始位置
+        if (outerMap.startsWith(CarDirection.UP)) {
+            headMap = mapData.MapH;
             tailMap = headMap + type - 1;
-        } else if (outerMap.startsWith('L')) {
-            // Lx汽车
-            const mapW = mapData.MapW;
-            headMap = mapW;
+        } else if (outerMap.startsWith(CarDirection.LEFT)) {
+            headMap = mapData.MapW;
             tailMap = headMap + type - 1;
-        } else if (outerMap.startsWith('R')) {
-            // Rx汽车
+        } else if (outerMap.startsWith(CarDirection.RIGHT)) {
             headMap = -1;
             tailMap = headMap - type + 1;
         }
 
         // 考虑sort位置
         if (sort > 0) {
-            if (outerMap.startsWith('U')) {
-                // 上方向汽车，sort越大越靠下
-                const prevInfo = this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort - 1);
-                if (prevInfo) {
+            const prevInfo = this.carParkingInfos.find(info => 
+                info.outerMap === outerMap && info.sort === sort - 1
+            );
+            
+            if (prevInfo) {
+                if (outerMap.startsWith(CarDirection.UP) || outerMap.startsWith(CarDirection.LEFT)) {
                     headMap = prevInfo.tailMap + 1;
                     tailMap = headMap + type - 1;
-                }
-            } else if (outerMap.startsWith('L')) {
-                // 左方向汽车，sort越大越靠右
-                const prevInfo = this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort - 1);
-                if (prevInfo) {
-                    headMap = prevInfo.tailMap + 1;
-                    tailMap = headMap + type - 1;
-                }
-            } else if (outerMap.startsWith('R')) {
-                // 右方向汽车，sort越大越靠左
-                const prevInfo = this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort - 1);
-                if (prevInfo) {
+                } else if (outerMap.startsWith(CarDirection.RIGHT)) {
                     headMap = prevInfo.tailMap - 1;
                     tailMap = headMap - type + 1;
                 }
             }
         }
 
-        // 存储汽车停放信息
-        const parkingInfo = {
+        return {
             outerMap,
             sort,
             type,
@@ -263,367 +350,420 @@ export class CarManager extends Component {
             tailMap,
             node: carNode
         };
-        this.carParkingInfos.push(parkingInfo);
-        console.log('存储汽车停放信息:', parkingInfo);
-
-        // 设置汽车点击事件
-        this.setupCarClickEvents(carNode, parentNode, type, sort);
     }
 
-    // 获取汽车预制体
+    /**
+     * 获取汽车预制体
+     */
     private getCarPrefab(outerMap: string, type: number): Prefab | null {
-        // 根据outerMap和type选择不同系列的预制体
-        if (outerMap.startsWith('U')) {
-            switch (type) {
-                case 1: return this.itemCarU1;
-                case 2: return this.itemCarU2;
-                case 3: return this.itemCarU3;
-                default: console.error(`Invalid car type: ${type}`); return null;
-            }
-        } else if (outerMap.startsWith('L')) {
-            switch (type) {
-                case 1: return this.itemCarL1;
-                case 2: return this.itemCarL2;
-                case 3: return this.itemCarL3;
-                default: console.error(`Invalid car type: ${type}`); return null;
-            }
-        } else if (outerMap.startsWith('R')) {
-            switch (type) {
-                case 1: return this.itemCarR1;
-                case 2: return this.itemCarR2;
-                case 3: return this.itemCarR3;
-                default: console.error(`Invalid car type: ${type}`); return null;
-            }
-        } else {
-            console.error(`Invalid outerMap: ${outerMap}`);
-            return null;
+        const carPrefabMap = new Map([
+            [`${CarDirection.UP}1`, this.itemCarU1],
+            [`${CarDirection.UP}2`, this.itemCarU2],
+            [`${CarDirection.UP}3`, this.itemCarU3],
+            [`${CarDirection.LEFT}1`, this.itemCarL1],
+            [`${CarDirection.LEFT}2`, this.itemCarL2],
+            [`${CarDirection.LEFT}3`, this.itemCarL3],
+            [`${CarDirection.RIGHT}1`, this.itemCarR1],
+            [`${CarDirection.RIGHT}2`, this.itemCarR2],
+            [`${CarDirection.RIGHT}3`, this.itemCarR3]
+        ]);
+
+        const direction = outerMap.charAt(0) as CarDirection;
+        const key = `${direction}${type}`;
+        const prefab = carPrefabMap.get(key);
+        
+        if (!prefab) {
+            console.error(`No car prefab found for direction: ${direction}, type: ${type}`);
         }
+        
+        return prefab || null;
     }
 
-    // 设置汽车位置
+    /**
+     * 设置汽车位置
+     */
     private setCarPosition(nodeName: string, carNode: Node, type: number): void {
-        const strategy = this.positionStrategies[nodeName];
+        const strategy = this.positionStrategies.get(nodeName);
         if (!strategy) {
-            console.error(`No position strategy found for node: ${nodeName}`);
-            return;
+            throw new Error(`No position strategy found for node: ${nodeName}`);
         }
 
-        const sortIndex = this.nodeSortIndexes[nodeName];
+        const sortIndex = this.nodeSortIndexes.get(nodeName) || 0;
         const position = strategy.calculatePosition(sortIndex, type);
         carNode.setPosition(position);
-        console.log(`设置${nodeName.charAt(4)}系列汽车位置: (${position.x}, ${position.y})`);
-
-        // 更新偏移量
         strategy.updateOffset(type);
     }
 
-    // 设置汽车点击事件
-    private setupCarClickEvents(carNode: Node, parentNode: Node, type: number, sort: number) {
-        // 为汽车添加触摸点击事件
+    /**
+     * 设置汽车点击事件
+     */
+    private setupCarClickEvents(carNode: Node, parentNode: Node, type: number, sort: number): void {
         carNode.on(Node.EventType.TOUCH_END, () => {
-                this.handleCarClick(carNode, parentNode, type, sort);
-            }, this);
-
-        // 为汽车添加鼠标点击事件（用于桌面平台）
-        // carNode.on(Node.EventType.MOUSE_UP, () => {
-        //         this.handleCarClick(carNode, parentNode, type, sort);
-        //     }, this);
+            this.handleCarClick(carNode, parentNode, type, sort);
+        }, this);
     }
 
-    // 处理汽车点击逻辑
-    private isAnimationPlaying: boolean = false;
-
-    private handleCarClick(carNode: Node, parentNode: Node, type: number, sort: number) {
-        // 如果有汽车正在播放动画，则不响应点击
+    /**
+     * 处理汽车点击逻辑
+     */
+    private handleCarClick(carNode: Node, parentNode: Node, type: number, sort: number): void {
         if (this.isAnimationPlaying) {
-            console.log(`有汽车正在播放动画，当前点击不响应`);
             return;
         }
 
-        // 获取汽车世界坐标
-        const worldPos = carNode.worldPosition;
-
-        // 获取当前关卡地图数据
-        const mapData = MapData.getMapDataByLevel(this.currentLevel);
-        const mapInfo = mapData ? JSON.stringify(mapData.Map) : '无地图数据';
-
         const outerMap = parentNode.name.replace('node', '');
+        const parkingInfo = this.findCarParkingInfo(outerMap, sort, type);
+        
+        if (!parkingInfo) {
+            console.warn(`Car parking info not found for ${outerMap}, sort: ${sort}, type: ${type}`);
+            return;
+        }
 
-        // 查找汽车停放信息
-        const parkingInfo = this.carParkingInfos.find(info => 
+        const mapData = MapData.getMapDataByLevel(this.currentLevel);
+        if (!mapData) {
+            console.error(`Map data not found for level ${this.currentLevel}`);
+            return;
+        }
+
+        const movementStatus = this.calculateMovementStatus(parkingInfo, mapData, outerMap);
+        this.executeCarMovement(carNode, parkingInfo, mapData, outerMap, movementStatus);
+    }
+
+    /**
+     * 查找汽车停放信息
+     */
+    private findCarParkingInfo(outerMap: string, sort: number, type: number): CarParkingInfo | null {
+        return this.carParkingInfos.find(info => 
             info.outerMap === outerMap && 
             info.sort === sort && 
             info.type === type
-        );
+        ) || null;
+    }
 
-        // 打印所需信息
-        console.log(`汽车被点击!`);
-        console.log(`- 父节点: ${parentNode.name}`);
-        console.log(`- type: ${type}`);
-        console.log(`- sort: ${sort}`);
-        console.log(`- 世界坐标: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`);
-        console.log(`- map: ${mapInfo}`);
-        if (parkingInfo) {
-            console.log(`- 车头位置: ${parkingInfo.headMap}`);
-            console.log(`- 车尾位置: ${parkingInfo.tailMap}`);
+    /**
+     * 计算汽车移动状态
+     */
+    private calculateMovementStatus(parkingInfo: CarParkingInfo, mapData: any, outerMap: string): CarMovementStatus {
+        if (outerMap.startsWith(CarDirection.UP)) {
+            return this.calculateUpCarMovementStatus(parkingInfo, mapData, outerMap);
+        } else if (outerMap.startsWith(CarDirection.LEFT)) {
+            return this.calculateLeftCarMovementStatus(parkingInfo, mapData, outerMap);
+        } else if (outerMap.startsWith(CarDirection.RIGHT)) {
+            return this.calculateRightCarMovementStatus(parkingInfo, mapData, outerMap);
+        }
+        return CarMovementStatus.CANNOT_MOVE;
+    }
 
-            // 根据汽车类型进行不同处理
-            if (outerMap.startsWith('U')) {
-                console.log(`汽车属于下方`);
-                // 从outerMap中提取数字部分作为x坐标（例如从'U1'提取'1'）
-                const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
-                console.log(`Ux汽车的x坐标从outerMap提取: ${x}`);
-                const mapH = mapData.MapH;
-                const map = mapData.Map;
+    /**
+     * 计算上方向汽车移动状态
+     */
+    private calculateUpCarMovementStatus(parkingInfo: CarParkingInfo, mapData: any, outerMap: string): CarMovementStatus {
+        const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
+        const map = mapData.Map;
+        const mapH = mapData.MapH;
 
-                // 可以通过位置策略获取汽车位置
-                const nodeName = `node${outerMap}`;
-                const strategy = this.positionStrategies[nodeName];
-                if (strategy) {
-                    const pos = strategy.calculatePosition(sort, type);
-                    console.log(`通过位置策略获取的汽车位置: (${pos.x}, ${pos.y})`);
-                }
+        const canMoveUp = this.canCarMoveUp(parkingInfo, map, x);
+        const canMoveDown = this.canCarMoveDown(parkingInfo, map, x, mapH);
 
-                // 检查是否可以向上开
-                console.log(`parkingInfo.headMap: ${parkingInfo.headMap}, x: ${x}`);
-                // 确保索引在有效范围内
-                const rowIndex = parkingInfo.headMap - 1;
-                const colIndex = x;
-                // 检查行和列索引是否有效
-                if (rowIndex >= 0 && rowIndex < map.length && colIndex >= 0 && colIndex < map[rowIndex].length) {
-                    console.log(`map[${rowIndex}][${colIndex}]: ${map[rowIndex][colIndex]}`);
-                } else {
-                    console.log(`索引越界: row=${rowIndex}, col=${colIndex}, 有效范围: 行[0-${map.length-1}], 列[0-${map[0]?.length-1}]`);
-                }
-                console.log(`整个map数据: ${JSON.stringify(map)}`);
-
-                // 使用临时变量存储条件判断结果
-                const cannotMoveUp = parkingInfo.headMap === 0 || (rowIndex >= 0 && rowIndex < map.length && colIndex >= 0 && colIndex < map[rowIndex].length && map[rowIndex][colIndex] !== 0);
-                const tailRowIndex = parkingInfo.tailMap + 1;
-                const cannotMoveDown = parkingInfo.headMap < 0 || (tailRowIndex < mapH && tailRowIndex >= 0 && x >= 0 && x < map[tailRowIndex].length && map[tailRowIndex][x] !== 0);
-
-                // 确定汽车移动状态
-                let movementStatus: CarMovementStatus;
-                if (cannotMoveUp && cannotMoveDown) {
-                    movementStatus = CarMovementStatus.CANNOT_MOVE;
-                } else if (cannotMoveUp) {
-                    movementStatus = CarMovementStatus.CAN_MOVE_DOWN;
-                } else {
-                    movementStatus = CarMovementStatus.CAN_MOVE_UP;
-                }
-
-                // 根据移动状态执行不同逻辑
-                if (movementStatus === CarMovementStatus.CANNOT_MOVE) {
-                    console.log(`汽车既不可以向上开也不可以向下开`);
-                } else if (movementStatus === CarMovementStatus.CAN_MOVE_DOWN) {
-                    console.log(`汽车可以向下开`);
-                    let carStopsOutside = true;
-
-                    // 检查车尾+1到mapH-1的位置
-                    for (let index = parkingInfo.tailMap + 1; index < mapH; index++) {
-                        if (index >= 0 && index < map.length && x >= 0 && x < map[index].length && map[index][x] !== 0) {
-                            console.log(`车尾会停在${index - 1}`);
-                            console.log(`汽车会停在停车场里边，被停车场里的车或雪糕桶挡下来。`);
-                            carStopsOutside = false;
-                            break;
-                        }
-                    }
-
-                    if (carStopsOutside) {
-                        console.log(`Ux的汽车会停在停车场外，和Ux相同且Sort比它大的车一起撤出停车场。`);
-                    }
-                } else {
-                    console.log(`汽车可以向上开`);
-                    let newHeadPos = parkingInfo.headMap - 1;
-
-                    // 寻找新的车头位置
-                    for (let index = parkingInfo.headMap - 1; index >= 0; index--) {
-                        if (index >= 0 && index < map.length && x >= 0 && x < map[index].length && map[index][x] !== 0) {
-                            break;
-                        }
-                        newHeadPos = index;
-                    }
-
-                    console.log(`车头会停在${newHeadPos}`);
-                }
-            } else if (outerMap.startsWith('R')) {
-                console.log(`汽车属于左方`);
-                // Rx汽车的逻辑，暂不细分
-            } else if (outerMap.startsWith('L')) {
-                console.log(`汽车属于右方`);
-                // Lx汽车的逻辑，暂不细分
-            }
-
-            // 更新汽车数据、地图数据，播放动画
-            if (outerMap.startsWith('U')) {
-                // 从outerMap中提取数字部分作为x坐标（例如从'U1'提取'1'）
-                const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
-                console.log(`Ux汽车的x坐标从outerMap提取: ${x}`);
-                const mapH = mapData.MapH;
-                const map = mapData.Map;
-                let carStopsOutside = true;
-                let index = parkingInfo.tailMap + 1;
-                let newHeadPos = parkingInfo.headMap - 1;
-
-                // 使用之前定义的移动状态
-                const rowIndex = parkingInfo.headMap - 1;
-                const cannotMoveUp = parkingInfo.headMap === 0 || (rowIndex >= 0 && rowIndex < map.length && x >= 0 && x < map[rowIndex].length && map[rowIndex][x] !== 0);
-                const tailRowIndex = parkingInfo.tailMap + 1;
-                const cannotMoveDown = parkingInfo.headMap < 0 || (tailRowIndex < mapH && tailRowIndex >= 0 && x >= 0 && x < map[tailRowIndex].length && map[tailRowIndex][x] !== 0);
-
-                let movementStatus: CarMovementStatus;
-                if (cannotMoveUp && cannotMoveDown) {
-                    movementStatus = CarMovementStatus.CANNOT_MOVE;
-                } else if (cannotMoveUp) {
-                    movementStatus = CarMovementStatus.CAN_MOVE_DOWN;
-                } else {
-                    movementStatus = CarMovementStatus.CAN_MOVE_UP;
-                }
-
-                if (movementStatus === CarMovementStatus.CAN_MOVE_DOWN) {
-                    // 可以向下开
-                    if (tailRowIndex === mapH - 1 && (tailRowIndex >= 0 && tailRowIndex < map.length && x >= 0 && x < map[tailRowIndex].length && map[tailRowIndex][x] === 0)) {
-                        // 检查车尾+1到mapH-1的位置
-                        carStopsOutside = true;
-                        for (index = parkingInfo.tailMap + 1; index < mapH; index++) {
-                            if (index >= 0 && index < map.length && x >= 0 && x < map[index].length && map[index][x] !== 0) {
-                                carStopsOutside = false;
-                                break;
-                            }
-                        }
-
-                        if (carStopsOutside) {
-                            // 汽车停在停车场外，需要撤出
-                            console.log(`Ux汽车撤出停车场`);
-                            // 1. 更新汽车停放信息
-                            parkingInfo.headMap = parkingInfo.tailMap + 1;
-                            parkingInfo.tailMap = mapH - 1;
-                            // 2. 更新地图数据（将原位置设为0）
-                            for (let i = parkingInfo.headMap - type; i < parkingInfo.headMap; i++) {
-                                if (i >= 0 && i < map.length && x >= 0 && x < map[i].length) {
-                                    map[i][x] = 0;
-                                }
-                            }
-                            // 3. 移动动画
-                            // 设置动画播放标志
-                            this.isAnimationPlaying = true;
-                            // 计算移动距离 (增加调试信息)
-                            const moveDistance = -100 * (parkingInfo.tailMap - parkingInfo.headMap + 1);
-                            console.log(`汽车移动距离: ${moveDistance}`);
-                            console.log(`动画目标位置: (${carNode.position.x}, ${carNode.position.y + moveDistance}, ${carNode.position.z})`);
-                            // 移动动画
-                            this.moveCarAnimation(carNode, new Vec3(0, moveDistance, 0), this.carAnimDuration, () => {
-                                // 动画结束后重置标志
-                                this.isAnimationPlaying = false;
-                                console.log(`动画播放完成，重置动画标志`);
-                            });
-                        } else {
-                            // 汽车停在停车场内
-                            console.log(`Ux汽车向下移动到新位置`);
-                            // 1. 更新汽车停放信息
-                            const oldHead = parkingInfo.headMap;
-                            parkingInfo.headMap = parkingInfo.tailMap + 1;
-                            parkingInfo.tailMap = index - 1;
-                            // 2. 更新地图数据
-                            for (let i = oldHead; i <= parkingInfo.tailMap; i++) {
-                                if (i >= 0 && i < map.length && x >= 0 && x < map[i].length) {
-                                    if (i < oldHead + type) {
-                                        map[i][x] = 0; // 清除原位置
-                                    }
-                                    if (i >= parkingInfo.headMap && i <= parkingInfo.tailMap) {
-                                        map[i][x] = type; // 设置新位置
-                                    }
-                                }
-                            }
-                            // 3. 移动动画
-                            // 设置动画播放标志
-                            this.isAnimationPlaying = true;
-                            // 移动动画
-                            this.moveCarAnimation(carNode, new Vec3(0, -100 * (parkingInfo.headMap - oldHead), 0), this.carAnimDuration, () => {
-                                // 动画结束后重置标志
-                                this.isAnimationPlaying = false;
-                            });
-                        }
-                    }
-                } else if (movementStatus === CarMovementStatus.CAN_MOVE_UP) {
-                    // 可以向上开
-                    console.log(`Ux汽车向上移动到新位置`);
-                    // 寻找新的车头位置
-                    newHeadPos = parkingInfo.headMap - 1;
-                    for (index = parkingInfo.headMap - 1; index >= 0; index--) {
-                        if (index >= 0 && index < map.length && x >= 0 && x < map[index].length && map[index][x] !== 0) {
-                            break;
-                        }
-                        newHeadPos = index;
-                    }
-
-                    // 1. 更新汽车停放信息
-                    const oldHead = parkingInfo.headMap;
-                    parkingInfo.headMap = newHeadPos;
-                    parkingInfo.tailMap = newHeadPos + type - 1;
-                    // 2. 更新地图数据
-                    for (let i = newHeadPos; i <= oldHead + type - 1; i++) {
-                        if (i >= 0 && i < map.length && x >= 0 && x < map[i].length) {
-                            if (i >= newHeadPos && i <= parkingInfo.tailMap) {
-                                map[i][x] = type; // 设置新位置
-                            } else {
-                                map[i][x] = 0; // 清除原位置
-                            }
-                        }
-                    }
-                    // 3. 移动动画
-                    // 设置动画播放标志
-                    this.isAnimationPlaying = true;
-                    // 移动动画
-                    this.moveCarAnimation(carNode, new Vec3(0, 100 * (oldHead - newHeadPos), 0), this.carAnimDuration, () => {
-                        // 动画结束后重置标志
-                        this.isAnimationPlaying = false;
-                    });
-                }
-            }
-            // Rx和Lx汽车的逻辑将在后续实现
-        
+        if (!canMoveUp && !canMoveDown) {
+            return CarMovementStatus.CANNOT_MOVE;
+        } else if (!canMoveUp) {
+            return CarMovementStatus.CAN_MOVE_DOWN;
         } else {
-            console.log(`- 未找到停放信息`);
+            return CarMovementStatus.CAN_MOVE_UP;
         }
     }
 
-    // 汽车移动动画
-    private moveCarAnimation(carNode: Node, targetOffset: Vec3, duration: number, onComplete?: () => void): void {
-        const targetPos = carNode.position.clone().add(targetOffset);
-        const tweenAction = tween(carNode)
-            .to(duration, { position: targetPos });
-
-        if (onComplete) {
-            tweenAction.call(onComplete);
-        }
-
-        tweenAction.start();
+    /**
+     * 计算左方向汽车移动状态
+     */
+    private calculateLeftCarMovementStatus(parkingInfo: CarParkingInfo, mapData: any, outerMap: string): CarMovementStatus {
+        // TODO: 实现左方向汽车移动逻辑
+        return CarMovementStatus.CANNOT_MOVE;
     }
 
-    // 增加成功停车计数
+    /**
+     * 计算右方向汽车移动状态
+     */
+    private calculateRightCarMovementStatus(parkingInfo: CarParkingInfo, mapData: any, outerMap: string): CarMovementStatus {
+        // TODO: 实现右方向汽车移动逻辑
+        return CarMovementStatus.CANNOT_MOVE;
+    }
+
+    /**
+     * 检查汽车是否可以向上移动
+     */
+    private canCarMoveUp(parkingInfo: CarParkingInfo, map: number[][], x: number): boolean {
+        if (parkingInfo.headMap === 0) {
+            return false;
+        }
+        
+        const rowIndex = parkingInfo.headMap - 1;
+        return this.isValidMapPosition(map, rowIndex, x) && map[rowIndex][x] === 0;
+    }
+
+    /**
+     * 检查汽车是否可以向下移动
+     */
+    private canCarMoveDown(parkingInfo: CarParkingInfo, map: number[][], x: number, mapH: number): boolean {
+        if (parkingInfo.headMap < 0) {
+            return false;
+        }
+        
+        const tailRowIndex = parkingInfo.tailMap + 1;
+        return tailRowIndex < mapH && 
+               this.isValidMapPosition(map, tailRowIndex, x) && 
+               map[tailRowIndex][x] === 0;
+    }
+
+    /**
+     * 检查地图位置是否有效
+     */
+    private isValidMapPosition(map: number[][], row: number, col: number): boolean {
+        return row >= 0 && row < map.length && 
+               col >= 0 && col < map[row].length;
+    }
+
+    /**
+     * 执行汽车移动
+     */
+    private executeCarMovement(
+        carNode: Node, 
+        parkingInfo: CarParkingInfo, 
+        mapData: any, 
+        outerMap: string, 
+        movementStatus: CarMovementStatus
+    ): void {
+        if (movementStatus === CarMovementStatus.CANNOT_MOVE) {
+            return;
+        }
+
+        if (outerMap.startsWith(CarDirection.UP)) {
+            this.executeUpCarMovement(carNode, parkingInfo, mapData, outerMap, movementStatus);
+        }
+        // TODO: 实现其他方向的移动逻辑
+    }
+
+    /**
+     * 执行上方向汽车移动
+     */
+    private executeUpCarMovement(
+        carNode: Node, 
+        parkingInfo: CarParkingInfo, 
+        mapData: any, 
+        outerMap: string, 
+        movementStatus: CarMovementStatus
+    ): void {
+        const x = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
+        const map = mapData.Map;
+        const mapH = mapData.MapH;
+
+        if (movementStatus === CarMovementStatus.CAN_MOVE_UP) {
+            this.moveCarUp(carNode, parkingInfo, map, x);
+        } else if (movementStatus === CarMovementStatus.CAN_MOVE_DOWN) {
+            this.moveCarDown(carNode, parkingInfo, map, x, mapH);
+        }
+    }
+
+    /**
+     * 向上移动汽车
+     */
+    private moveCarUp(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], x: number): void {
+        const oldHead = parkingInfo.headMap;
+        let newHeadPos = parkingInfo.headMap - 1;
+
+        // 寻找新的车头位置
+        for (let index = parkingInfo.headMap - 1; index >= 0; index--) {
+            if (this.isValidMapPosition(map, index, x) && map[index][x] !== 0) {
+                break;
+            }
+            newHeadPos = index;
+        }
+
+        // 更新停放信息
+        parkingInfo.headMap = newHeadPos;
+        parkingInfo.tailMap = newHeadPos + parkingInfo.type - 1;
+
+        // 更新地图数据
+        this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead + parkingInfo.type - 1, x, parkingInfo.type);
+
+        // 播放动画
+        this.playCarMoveAnimation(carNode, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0));
+    }
+
+    /**
+     * 向下移动汽车
+     */
+    private moveCarDown(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], x: number, mapH: number): void {
+        let carStopsOutside = true;
+        let stopIndex = mapH;
+
+        // 检查车尾+1到mapH-1的位置
+        for (let index = parkingInfo.tailMap + 1; index < mapH; index++) {
+            if (this.isValidMapPosition(map, index, x) && map[index][x] !== 0) {
+                carStopsOutside = false;
+                stopIndex = index;
+                break;
+            }
+        }
+
+        const oldHead = parkingInfo.headMap;
+        
+        if (carStopsOutside) {
+            // 汽车停在停车场外
+            parkingInfo.headMap = parkingInfo.tailMap + 1;
+            parkingInfo.tailMap = mapH - 1;
+            
+            // 清除原位置
+            for (let i = oldHead; i < oldHead + parkingInfo.type; i++) {
+                if (this.isValidMapPosition(map, i, x)) {
+                    map[i][x] = 0;
+                }
+            }
+        } else {
+            // 汽车停在停车场内
+            parkingInfo.headMap = parkingInfo.tailMap + 1;
+            parkingInfo.tailMap = stopIndex - 1;
+            
+            // 更新地图数据
+            this.updateMapForCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldHead + parkingInfo.type - 1, x, parkingInfo.type);
+        }
+
+        // 播放动画
+        const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
+        this.playCarMoveAnimation(carNode, new Vec3(0, moveDistance, 0));
+    }
+
+    /**
+     * 更新地图数据
+     */
+    private updateMapForCarMovement(
+        map: number[][], 
+        newHead: number, 
+        newTail: number, 
+        oldHead: number, 
+        oldTail: number, 
+        x: number, 
+        carType: number
+    ): void {
+        // 清除旧位置
+        for (let i = oldHead; i <= oldTail; i++) {
+            if (this.isValidMapPosition(map, i, x)) {
+                map[i][x] = 0;
+            }
+        }
+        
+        // 设置新位置
+        for (let i = newHead; i <= newTail; i++) {
+            if (this.isValidMapPosition(map, i, x)) {
+                map[i][x] = carType;
+            }
+        }
+    }
+
+    /**
+     * 播放汽车移动动画
+     */
+    private playCarMoveAnimation(carNode: Node, targetOffset: Vec3): void {
+        this.isAnimationPlaying = true;
+        this.moveCarAnimation(carNode, targetOffset, this.carAnimDuration, () => {
+            this.isAnimationPlaying = false;
+        });
+    }
+
+    /**
+     * 汽车移动动画
+     */
+    private moveCarAnimation(carNode: Node, targetOffset: Vec3, duration: number, callback?: () => void): void {
+        const startPosition = carNode.position.clone();
+        const targetPosition = startPosition.add(targetOffset);
+        
+        tween(carNode)
+            .to(duration, { position: targetPosition })
+            .call(() => {
+                if (callback) {
+                    callback();
+                }
+            })
+            .start();
+    }
+
+    /**
+     * 增加成功停车计数
+     */
     public incrementSuccessfulPark(): void {
         this.successfulParks++;
         console.log(`成功停车计数增加到: ${this.successfulParks}`);
     }
 
-    // 获取成功停车计数
+    /**
+     * 获取成功停车计数
+     */
     public getSuccessfulParks(): number {
         return this.successfulParks;
     }
 
-    // 设置当前关卡
+    /**
+     * 设置当前关卡
+     */
     public setCurrentLevel(level: number): void {
+        if (level < 1) {
+            console.warn(`Invalid level: ${level}. Level must be >= 1`);
+            return;
+        }
         this.currentLevel = level;
     }
 
-    // 获取当前关卡
+    /**
+     * 获取当前关卡
+     */
     public getCurrentLevel(): number {
         return this.currentLevel;
     }
 
-    // 根据outerMap和sort获取汽车停放信息
+    /**
+     * 根据outerMap和sort获取汽车停放信息
+     */
     public getCarParkingInfo(outerMap: string, sort: number): CarParkingInfo | null {
-        return this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort);
+        return this.carParkingInfos.find(info => info.outerMap === outerMap && info.sort === sort) || null;
+    }
+
+    /**
+     * 获取所有汽车停放信息
+     */
+    public getAllCarParkingInfos(): CarParkingInfo[] {
+        return [...this.carParkingInfos]; // 返回副本以防止外部修改
+    }
+
+    /**
+     * 重置成功停车计数
+     */
+    public resetSuccessfulParks(): void {
+        this.successfulParks = 0;
+    }
+
+    /**
+     * 检查是否有动画正在播放
+     */
+    public isAnimating(): boolean {
+        return this.isAnimationPlaying;
+    }
+
+    /**
+     * 获取指定节点的位置策略
+     */
+    public getPositionStrategy(nodeName: string): CarPositionStrategy | null {
+        return this.positionStrategies.get(nodeName) || null;
+    }
+
+    /**
+     * 重置所有位置策略
+     */
+    private resetAllStrategies(): void {
+        this.positionStrategies.forEach(strategy => {
+            if (strategy.reset) {
+                strategy.reset();
+            }
+        });
     }
 }
