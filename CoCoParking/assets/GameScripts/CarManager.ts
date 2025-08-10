@@ -946,7 +946,7 @@ export class CarManager extends Component {
         console.log(`汽车移动后：车头位置=${parkingInfo.headMap}，车尾位置=${parkingInfo.tailMap}`);
 
         // 更新地图数据
-        this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead - parkingInfo.type + 1, y, parkingInfo.type, false);
+        this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead - parkingInfo.type + 1, y, parkingInfo.type, true);
 
         // 判断停车状态变化，车头是否在停车场左端外面，车尾是否在停车场左端里面
         const wasOutsidePark = oldHead < 0;
@@ -1055,7 +1055,7 @@ export class CarManager extends Component {
         }
         
         // 更新地图
-        this.updateMapForCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldTail, y, parkingInfo.type);
+        this.updateMapForCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldTail, y, parkingInfo.type, true);
         
         // 判断停车状态变化，车头是否在停车场右部外面，车尾是否在停车场右部里面
         const wasOutsidePark = oldHead >= mapW;
@@ -1097,7 +1097,7 @@ export class CarManager extends Component {
         parkingInfo.headMap = stopIndex - parkingInfo.type + 1;
         
         // 更新地图
-        this.updateMapForCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldTail, y, parkingInfo.type);
+        this.updateMapForCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldTail, y, parkingInfo.type, true);
         
         // 播放动画
         const moveDistance = CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.tailMap - oldTail);
@@ -1514,7 +1514,7 @@ export class CarManager extends Component {
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
                 const moveDistance = carToMove.headMap - oldHead;
-                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0), 'none');
             }
             
             // 更新下一个车的位置，下一辆车的车头=当前车的车尾+1，即当前车车尾的下面一格
