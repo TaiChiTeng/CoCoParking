@@ -59,7 +59,7 @@ enum CarDirection {
 // 常量定义
 const CONSTANTS = {
     CAR_POSITION_OFFSET: 100,
-    DEFAULT_ANIM_DURATION: 0.3,
+    DEFAULT_ANIM_DURATION: 0.4,
     MAX_CAR_TYPE: 3,
     MIN_CAR_TYPE: 1
 } as const;
@@ -808,7 +808,7 @@ export class CarManager extends Component {
                 this.moveCarDownOutPark(carNode, parkingInfo, map, x, mapH, outerMap);
                 break;
             case CarMovementStatus.Rx_CAN_MOVE_RIGHT:
-                this.moveRxCarRight(carNode, parkingInfo, map, y, mapW, outerMap);
+                this.moveRxCarRight(carNode, parkingInfo, map, y);
                 break;
             case CarMovementStatus.Rx_CAN_MOVE_LEFT_IN_PARK:
                 this.moveRxCarLeft(carNode, parkingInfo, map, y);
@@ -915,37 +915,40 @@ export class CarManager extends Component {
     /**
      * Rx汽车向右移动
      */
-    private moveRxCarRight(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], y: number, mapW: number, outerMap: string): void {
+    private moveRxCarRight(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], y: number): void {
         console.log(`=== 开始移动Rx汽车${parkingInfo.outerMap}sort${parkingInfo.sort} ===`);
-        
+        const oldHead = parkingInfo.headMap;
         // 计算新车头位置，默认是当前车头位置右面一格
-        let newHeadPosition = parkingInfo.headMap + 1;
+        let newHeadPos = parkingInfo.headMap + 1;
+        const mapW = map[0].length;
 
         // 寻找新的车头位置，尽量往停车场的右端向右开
         for (let index = parkingInfo.headMap + 1; index < mapW; index++) {
             if (this.isValidMapPosition(map, y, index) && map[y][index] !== 0) {
                 break;
             }
-            newHeadPosition = index;
+            newHeadPos = index;
         }
         
-        const oldHead = parkingInfo.headMap;
-        const oldTail = parkingInfo.tailMap;
+        // 检查汽车是否有部分在停车场外
+        const hasPartOutsidePark = parkingInfo.tailMap < 0;
         
-        // 更新汽车位置，车头找到了，Rx的车尾总是=车头-长度+1。
-        parkingInfo.headMap = newHeadPosition;
-        parkingInfo.tailMap = newHeadPosition - parkingInfo.type + 1;
-        
-        // 连带移动检查
-        const hasPartOutsidePark = oldHead < 0 || oldTail < 0;
+        // 如果汽车有部分在停车场外，处理相同Rx中sort比当前车大的车一起向上移动
         if (hasPartOutsidePark) {
-            this.moveRxSimilarCarsWithHigherSortRight(outerMap, parkingInfo.sort, map, mapW);
+            this.moveRxSimilarCarsWithHigherSortRight(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
         }
-        
-        // 更新地图
-        this.updateMapForCarMovement(map, parkingInfo.headMap, parkingInfo.tailMap, oldHead, oldTail, y, parkingInfo.type, true);
-        
-        // 判断停车状态变化，车头是否在停车场左部外面，车尾是否在停车场左部里面
+
+        // 更新停放信息，车头找到了，Rx的车尾总是=车头-长度+1。
+        parkingInfo.headMap = newHeadPos;
+        parkingInfo.tailMap = newHeadPos - parkingInfo.type + 1;
+
+        // 打印汽车移动后的位置
+        console.log(`汽车移动后：车头位置=${parkingInfo.headMap}，车尾位置=${parkingInfo.tailMap}`);
+
+        // 更新地图数据
+        this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead - parkingInfo.type + 1, y, parkingInfo.type, false);
+
+        // 判断停车状态变化，车头是否在停车场左端外面，车尾是否在停车场左端里面
         const wasOutsidePark = oldHead < 0;
         const isNowInsidePark = parkingInfo.tailMap >= 0;
         let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
@@ -953,11 +956,11 @@ export class CarManager extends Component {
         if (wasOutsidePark && isNowInsidePark) {
             parkingStatusChange = 'enter';
             parkingInfo.inPark = 1;
+            console.log("汽车从停车场外完全进入停车场内");
         }
         
         // 播放动画
-        const moveDistance = CONSTANTS.CAR_POSITION_OFFSET * (newHeadPosition - oldHead);
-        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0), parkingStatusChange);
+        this.playCarMoveAnimation(carNode, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), parkingStatusChange);
     }
 
     /**
@@ -1003,21 +1006,21 @@ export class CarManager extends Component {
         parkingInfo.headMap = -1;
         parkingInfo.tailMap = -parkingInfo.type;
         
-        // 清除原位置，旧车头到旧车尾，是递减的哦，反过来就是递增
+        // 清除原位置，旧车尾到旧车头，是递减的哦，反过来就是递增
         for (let i = oldTail; i <= oldHead; i++) {
             if (this.isValidMapPosition(map, y, i)) {
                 map[y][i] = 0;
             }
         }
-        
+        console.log('Rx汽车向左移出停车场A');
         // 移动相同Rx且Sort比它大的车，确保相邻
         this.moveRxSimilarCarsWithHigherSortLeft(outerMap, parkingInfo.sort, map, parkingInfo.tailMap);
-        
+        console.log('Rx汽车向左移出停车场B');
         // 更新停车状态变化 - 撤出停车场
         parkingInfo.inPark = 0;
         
         // 播放动画
-        const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
+        const moveDistance = CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
         this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0), 'exit');
     }
 
@@ -1302,12 +1305,12 @@ export class CarManager extends Component {
         for (const carToMove of carsToMove) {
             const oldHead = carToMove.headMap;
             
-            // 尽量向右移动：从当前车头-1开始向右遍历，找到最远的可移动位置
+            // 尽量向右移动：从当前车头+1开始向右遍历，找到最远的可移动位置
             let newHeadPos = carToMove.headMap;
-            for (let index = carToMove.headMap - 1; index < 0; index++) {
+            for (let index = carToMove.headMap + 1; index < mapW; index++) {
                 // 检查这个位置及后续位置是否都可用
                 let canMove = true;
-                for (let checkPos = index; checkPos < index + carToMove.type; checkPos++) {
+                for (let checkPos = index; checkPos > index - carToMove.type; checkPos--) {
                     if (this.isValidMapPosition(map, y, checkPos) && map[y][checkPos] !== 0) {
                         canMove = false;
                         break;
@@ -1321,11 +1324,11 @@ export class CarManager extends Component {
                 }
             }
             
-            // 如果没有找到更好的位置，至少确保不进入停车场
-            newHeadPos = Math.min(0, newHeadPos);
+            // 如果没有找到更好的位置，至少确保不进入停车场，要≤-1
+            newHeadPos = Math.min(-1, newHeadPos);
             
             // 清除原位置
-            for (let i = carToMove.headMap; i <= carToMove.tailMap; i--) {
+            for (let i = carToMove.headMap; i >= carToMove.tailMap; i--) {
                 if (this.isValidMapPosition(map, y, i)) {
                     map[y][i] = 0;
                 }
@@ -1334,9 +1337,9 @@ export class CarManager extends Component {
             // 更新停放信息，找到车头，Rx的车尾总是=车头-长度+1。
             carToMove.headMap = newHeadPos;
             carToMove.tailMap = newHeadPos - carToMove.type + 1;
-            
+            console.log('移动相同Rx中sort比当前车大的车一起向右移动（但sort+1的车是不进入停车场的）');
             // 设置新位置
-            for (let i = carToMove.headMap; i <= carToMove.tailMap; i--) {
+            for (let i = carToMove.headMap; i >= carToMove.tailMap; i--) {
                 if (this.isValidMapPosition(map, y, i)) {
                     map[y][i] = carToMove.sort;
                 }
@@ -1347,7 +1350,7 @@ export class CarManager extends Component {
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
-                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), 'none');
             }
         }
     }
@@ -1376,7 +1379,7 @@ export class CarManager extends Component {
             const y = parseInt(outerMap.replace(/[^0-9]/g, ''), 10);
             
             // 从地图上清除原位置，注意Rx是递减
-            for (let i = carToMove.headMap; i <= carToMove.tailMap; i--) {
+            for (let i = carToMove.headMap; i >= carToMove.tailMap; i--) {
                 if (this.isValidMapPosition(map, y, i)) {
                     map[y][i] = 0;
                 }
@@ -1393,7 +1396,7 @@ export class CarManager extends Component {
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
                 const moveDistance = carToMove.headMap - oldHead;
-                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0), 'none');
             }
             
             // 更新下一个车的位置，Rx下一辆车的车头=当前车的车尾-1，即当前车车尾的左面一格
