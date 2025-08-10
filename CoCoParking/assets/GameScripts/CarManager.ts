@@ -552,7 +552,7 @@ export class CarManager extends Component {
         const map = mapData.Map;
         const mapW = mapData.MapW;
 
-        console.log("汽车属于左方");
+        console.log("汽车属于右方");
 
         const canMoveRight = this.canCarMoveRight(parkingInfo, map, x, mapW);
         
@@ -563,28 +563,27 @@ export class CarManager extends Component {
             // 检查是否可以向左开
             const tailLeftCol = parkingInfo.tailMap - 1;
             const headAlreadyOutside = parkingInfo.headMap < 0;
+            const carAlreadyOutside = parkingInfo.headMap < 0; // 汽车已经在停车场外
             
             // 车尾左边一格是停车场内 并且 车尾左边一格不是0
             const tailLeftBlocked = (tailLeftCol >= 0 && tailLeftCol < mapW && map[x][tailLeftCol] !== 0);
             
-            if (tailLeftBlocked || headAlreadyOutside) {
+            if (tailLeftBlocked || headAlreadyOutside || carAlreadyOutside) {
                 console.log("汽车也不可以向左开");
                 return CarMovementStatus.CANNOT_MOVE;
             } else {
                 console.log("汽车可以向左开");
                 
-                // 先定义 汽车停场外=true，遍历 index 从车尾-1 到 0
+                // 检查汽车会停在哪里
                 let carStopsOutside = true;
                 for (let index = parkingInfo.tailMap - 1; index >= 0; index--) {
                     if (map[x][index] !== 0) {
-                        // （14.2.1.2.1）打印 车尾会停在index+1 和 "汽车会停在停车场里边，被停车场里的车或雪糕桶挡下来。"，汽车停场外=false，跳出循环。
                         console.log(`车尾会停在${index + 1}`, "汽车会停在停车场里边，被停车场里的车或雪糕桶挡下来。");
                         carStopsOutside = false;
                         break;
                     }
                 }
                 
-                // 循环结束，（14.2.1.2.2）如果 汽车停场外 = true，打印"Rx的汽车会停在停车场外，和Rx相同且Sort比它大的车一起撤出停车场。"
                 if (carStopsOutside) {
                     console.log("Rx的汽车会停在停车场外，和Rx相同且Sort比它大的车一起撤出停车场。");
                     return CarMovementStatus.CAN_MOVE_LEFT_OUT_PARK;
@@ -595,17 +594,15 @@ export class CarManager extends Component {
         } else {
             console.log("汽车可以向右开");
             
-            // 先定义 汽车车头新位置=车头+1，遍历 index 从车头+1 到 mapW-1
+            // 寻找车头新位置
             let newHeadPos = parkingInfo.headMap + 1;
             for (let index = parkingInfo.headMap + 1; index < mapW; index++) {
                 if (map[x][index] !== 0) {
                     break;
                 }
-                // 否则 汽车车头新位置=index
                 newHeadPos = index;
             }
             
-            // 循环结束，打印 车头会停在汽车车头新位置
             console.log(`车头会停在${newHeadPos}`);
             return CarMovementStatus.CAN_MOVE_RIGHT;
         }
@@ -671,42 +668,31 @@ export class CarManager extends Component {
      * 检查汽车是否可以向右移动
      */
     private canCarMoveRight(parkingInfo: CarParkingInfo, map: number[][], x: number, mapW: number): boolean {
-        // 如果车头已经在地图右边界，不能向右移动
-        if (parkingInfo.headMap === mapW - 1) {
+        // 如果车头已经在地图右端，不能向右移动
+        if (parkingInfo.headMap >= mapW - 1) {
             return false;
         }
         
-        // 检查车头右边一格是否被占用
+        // 检查车头右方位置是否有效且为空
         const rightColIndex = parkingInfo.headMap + 1;
-        if (!this.isValidMapPosition(map, x, rightColIndex) || map[x][rightColIndex] !== 0) {
+        if (rightColIndex < mapW && this.isValidMapPosition(map, x, rightColIndex) && map[x][rightColIndex] !== 0) {
             return false;
         }
         
-        // 检查汽车是否在停车场外且它右边有车
-        // 对于Rx汽车，停车场外包括左侧（headMap < 0）和右侧（headMap >= mapW）
-        const isCarOutsidePark = parkingInfo.headMap < 0 || parkingInfo.headMap >= mapW;
+        // 如果汽车在停车场外，还需检查右方是否有其他汽车
+        const isCarOutsidePark = parkingInfo.headMap < 0;
         if (isCarOutsidePark) {
-            // 检查右边是否有车（需要考虑右边位置也可能在停车场外）
+            // 检查右方位置是否被其他汽车占用
             const rightPosition = parkingInfo.headMap + 1;
-            
-            // 如果右边位置在停车场内，检查map
-            if (rightPosition >= 0 && rightPosition < mapW && map[x][rightPosition] !== 0) {
-                console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}右边位置${rightPosition}在停车场内被占用`);
+            const hasCarRight = this.carParkingInfos.some(carInfo => 
+                carInfo.outerMap === parkingInfo.outerMap && 
+                carInfo !== parkingInfo && // 排除自己
+                carInfo.headMap <= rightPosition && 
+                carInfo.tailMap >= rightPosition
+            );
+            if (hasCarRight) {
+                console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}右边位置${rightPosition}在停车场外被其他汽车占用`);
                 return false;
-            }
-            
-            // 如果右边位置也在停车场外，检查是否有其他车辆占据该位置
-            if (rightPosition < 0 || rightPosition >= mapW) {
-                const hasCarRight = this.carParkingInfos.some(carInfo => 
-                    carInfo.outerMap === parkingInfo.outerMap && 
-                    carInfo !== parkingInfo && // 排除自己
-                    carInfo.headMap <= rightPosition && 
-                    carInfo.tailMap >= rightPosition
-                );
-                if (hasCarRight) {
-                    console.log(`汽车${parkingInfo.outerMap}sort${parkingInfo.sort}右边位置${rightPosition}在停车场外被其他汽车占用`);
-                    return false;
-                }
             }
         }
         
@@ -958,11 +944,11 @@ export class CarManager extends Component {
             // 汽车停在停车场外
             console.log("Rx的汽车会停在停车场外，和Rx相同且Sort比它大的车一起撤出停车场。");
             
-            // 根据需求14.2.4，汽车撤出停车场时的正确位置计算：
-            // R0sort0: 车头=-1，车尾=-2
-            // R0sort1: 车头=-3，车尾=-3
-            parkingInfo.headMap = -1;
-            parkingInfo.tailMap = parkingInfo.headMap - parkingInfo.type + 1;
+            // 汽车撤出停车场外，计算新的车尾位置（尽可能向左移动）
+            // 对于Rx汽车，车尾位置应该是0的左侧，即-1, -2, -3...
+            parkingInfo.tailMap = -parkingInfo.sort - 1;
+            // 对于Rx汽车，车头index比车尾index大，所以车头 = 车尾 + type - 1
+            parkingInfo.headMap = parkingInfo.tailMap + parkingInfo.type - 1;
             
             // 清除原位置
             // 对于Rx汽车，车头index比车尾index大，所以需要从车尾到车头遍历
