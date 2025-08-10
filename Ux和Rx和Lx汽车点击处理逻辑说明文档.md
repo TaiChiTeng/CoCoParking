@@ -35,13 +35,13 @@ enum CarMovementStatus {
     CAN_MOVE_DOWN_OUT_PARK // 可以向下移动（停在停车场外）
     
     Rx_CAN_MOVE_RIGHT,           // Rx可以向右移动
-    Rx_CAN_MOVE_RIGHT_IN_PARK,   // Rx可以向右移动（停在停车场内）
-    Rx_CAN_MOVE_RIGHT_OUT_PARK,  // Rx可以向右移动（停在停车场外）
+    Rx_CAN_MOVE_LEFT_IN_PARK,   // Rx可以向左移动（停在停车场内）
+    Rx_CAN_MOVE_LEFT_OUT_PARK,  // Rx可以向左移动（停在停车场外）
     Rx_CAN_MOVE_LEFT,            // Rx可以向左移动
 
     Lx_CAN_MOVE_LEFT,            // Lx可以向左移动
-    Lx_CAN_MOVE_LEFT_IN_PARK,    // Lx可以向左移动（停在停车场内）
-    Lx_CAN_MOVE_LEFT_OUT_PARK,   // Lx可以向左移动（停在停车场外）
+    Lx_CAN_MOVE_RIGHT_IN_PARK,    // Lx可以向左移动（停在停车场内）
+    Lx_CAN_MOVE_RIGHT_OUT_PARK,   // Lx可以向左移动（停在停车场外）
     Lx_CAN_MOVE_RIGHT,           // Lx可以向右移动
 }
 ```
@@ -473,12 +473,12 @@ return carStopsOutside ?
 
 ```typescript
 // <<执行移动操作>>=
-this.executeUpCarMovement(carNode, parkingInfo, mapData, outerMap, movementStatus);
+this.executeCarMovement(carNode, parkingInfo, mapData, outerMap, movementStatus);
 ```
 
 ```typescript
 // <<移动执行分发器>>=
-private executeUpCarMovement(
+private executeCarMovement(
     carNode: Node, 
     parkingInfo: CarParkingInfo, 
     mapData: any, 
@@ -642,7 +642,7 @@ this.moveRxCarRight(parkingInfo, map, mapW, y);
 ```
 
 ```typescript
-// <<向上移动核心逻辑>>=
+// <<Rx向右移动核心逻辑>>=
 private moveRxCarRight(parkingInfo: CarParkingInfo, map: number[][], mapW: number, y: number): void {
     const oldHead = parkingInfo.headMap;
     
