@@ -1468,7 +1468,7 @@ export class CarManager extends Component {
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
-                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), 'none');
             }
         }
     }
