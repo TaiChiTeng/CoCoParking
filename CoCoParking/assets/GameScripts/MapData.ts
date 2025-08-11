@@ -5,6 +5,11 @@ import { Level2Map } from './Map/lv2';
 import { Level3Map } from './Map/lv3';
 import { Level4Map } from './Map/lv4';
 import { Level5Map } from './Map/lv5';
+import { Level6Map } from './Map/lv6';
+import { Level7Map } from './Map/lv7';
+import { Level8Map } from './Map/lv8';
+import { Level9Map } from './Map/lv9';
+import { Level10Map } from './Map/lv10';
 
 const { ccclass } = _decorator;
 
@@ -16,7 +21,12 @@ export class MapData {
         2: Level2Map,
         3: Level3Map,
         4: Level4Map,
-        5: Level5Map
+        5: Level5Map,
+        6: Level6Map,
+        7: Level7Map,
+        8: Level8Map,
+        9: Level9Map,
+        10: Level10Map
     };
 
     // 根据关卡数获取地图数据
