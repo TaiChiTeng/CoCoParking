@@ -24,15 +24,6 @@ export class GameManager extends Component {
     private isSoundOn: boolean = true;
     private currentLevel: number = 1; // 当前关卡
 
-    onLoad() {
-        if (typeof wx !== 'undefined') {
-            wx.showShareMenu({
-                withShareTicket: true, // 如需获取群聊标识需开启
-                menus: ['shareAppMessage', 'shareTimeline'] // 同时启用wx好友和朋友圈分享
-            });
-        }
-    }
-
     start() {
         // 获取各管理器引用
         this.initManagers();

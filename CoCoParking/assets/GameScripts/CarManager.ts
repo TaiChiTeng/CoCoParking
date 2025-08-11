@@ -1272,6 +1272,13 @@ export class CarManager extends Component {
             carToMove.headMap = nextHeadPosition;
             carToMove.tailMap = nextHeadPosition + carToMove.type - 1;
             
+            // 设置新位置到地图上，Claude改对了！
+            for (let i = carToMove.headMap; i <= carToMove.tailMap; i++) {
+                if (this.isValidMapPosition(map, i, x)) {
+                    map[i][x] = carToMove.sort;
+                }
+            }
+            
             // 打印移动信息
             console.log(`相关车辆向下移动：outerMap=${outerMap}, sort=${carToMove.sort}, 车头位置=${carToMove.headMap}，车尾位置=${carToMove.tailMap}`);
             
@@ -1390,6 +1397,13 @@ export class CarManager extends Component {
             carToMove.headMap = nextHeadPosition;
             carToMove.tailMap = nextHeadPosition - carToMove.type + 1;
             
+            // 设置新位置到地图上，注意Rx是递减
+            for (let i = carToMove.headMap; i >= carToMove.tailMap; i--) {
+                if (this.isValidMapPosition(map, y, i)) {
+                    map[y][i] = carToMove.sort;
+                }
+            }
+            
             // 打印移动信息
             console.log(`相关车辆向左移动：outerMap=${outerMap}, sort=${carToMove.sort}, 车头位置=${carToMove.headMap}，车尾位置=${carToMove.tailMap}`);
             
@@ -1489,7 +1503,7 @@ export class CarManager extends Component {
         // 按sort排序，确保按顺序移动
         carsToMove.sort((a, b) => a.sort - b.sort);
         
-        // 移动这些车，确保与当前车相邻，下一辆车的车头=当前车的车尾+1，即当前车车尾的下面一格
+        // 移动这些车，确保与当前车相邻，下一辆车的车头=当前车的车尾+1，即当前车车尾的右面一格
         let nextHeadPosition = currentCarTailMap + 1;
         
         for (const carToMove of carsToMove) {
@@ -1503,13 +1517,20 @@ export class CarManager extends Component {
                 }
             }
             
-            // 更新停放信息，确保与当前车相邻，下一辆车的车头=当前车的车尾+1，即当前车车尾的下面一格
+            // 更新停放信息，确保与当前车相邻，下一辆车的车头=当前车的车尾+1，即当前车车尾的右面一格
             // Lx的车尾总是=车头+长度-1
             carToMove.headMap = nextHeadPosition;
             carToMove.tailMap = nextHeadPosition + carToMove.type - 1;
             
+            // 设置新位置到地图上
+            for (let i = carToMove.headMap; i <= carToMove.tailMap; i++) {
+                if (this.isValidMapPosition(map, y, i)) {
+                    map[y][i] = carToMove.sort;
+                }
+            }
+            
             // 打印移动信息
-            console.log(`相关车辆向左移动：outerMap=${outerMap}, sort=${carToMove.sort}, 车头位置=${carToMove.headMap}，车尾位置=${carToMove.tailMap}`);
+            console.log(`相关车辆向右移动：outerMap=${outerMap}, sort=${carToMove.sort}, 车头位置=${carToMove.headMap}，车尾位置=${carToMove.tailMap}`);
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
@@ -1517,7 +1538,7 @@ export class CarManager extends Component {
                 this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0), 'none');
             }
             
-            // 更新下一个车的位置，下一辆车的车头=当前车的车尾+1，即当前车车尾的下面一格
+            // 更新下一个车的位置，下一辆车的车头=当前车的车尾+1，即当前车车尾的右面一格
             nextHeadPosition = carToMove.tailMap + 1;
         }
     }
