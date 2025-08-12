@@ -21,5 +21,6 @@ export class Level1Map {
         {outerMap: 'U1', sort: 0, type: 2, inPark: 0}, // 在停车场外
         {outerMap: 'U2', sort: 0, type: 1, inPark: 0}, // 在停车场外
         {outerMap: 'U2', sort: 1, type: 1, inPark: 0}, // 在停车场外
+        {outerMap: 'U2', sort: 2, type: 1, inPark: 0}  // 在停车场外
     ];
 }

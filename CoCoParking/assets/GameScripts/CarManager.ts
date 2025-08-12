@@ -850,14 +850,6 @@ export class CarManager extends Component {
             newHeadPos = index;
         }
 
-        // 检查汽车是否有部分在停车场外
-        const hasPartOutsidePark = parkingInfo.tailMap >= mapH;
-        
-        // 如果汽车有部分在停车场外，处理相同Ux中sort比当前车大的车一起向上移动
-        if (hasPartOutsidePark) {
-            this.moveSimilarCarsWithHigherSortUp(parkingInfo.outerMap, parkingInfo.sort, map, mapH);
-        }
-
         // 更新停放信息，车头找到了，Ux的车尾总是=车头+长度-1。
         parkingInfo.headMap = newHeadPos;
         parkingInfo.tailMap = newHeadPos + parkingInfo.type - 1;
@@ -867,6 +859,15 @@ export class CarManager extends Component {
 
         // 更新地图数据
         this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead + parkingInfo.type - 1, x, parkingInfo.type, false);
+
+        // 检查汽车旧位置是否有部分在停车场外，只要车尾在停车场外，就需要处理
+        const hasPartOutsidePark = oldHead + parkingInfo.type - 1 >= mapH;
+
+        
+        // 如果汽车有部分在停车场外，处理相同Ux中sort比当前车大的车一起向上移动
+        if (hasPartOutsidePark) {
+            this.moveSimilarCarsWithHigherSortUp(parkingInfo.outerMap, parkingInfo.sort, map, mapH);
+        }        
 
         // 判断停车状态变化，车头是否在停车场底部外面，车尾是否在停车场底部里面
         const wasOutsidePark = oldHead >= mapH;
@@ -878,7 +879,7 @@ export class CarManager extends Component {
             parkingInfo.inPark = 1;
             console.log("汽车从停车场外完全进入停车场内");
         }
-        
+
         // 播放动画
         this.playCarMoveAnimation(carNode, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0), parkingStatusChange);
     }
@@ -1185,48 +1186,40 @@ export class CarManager extends Component {
         
         // 移动这些车（尽量向上移动但不进入停车场）
         for (const carToMove of carsToMove) {
+            // 旧车头先存一下
             const oldHead = carToMove.headMap;
             
-            // 尽量向上移动：从当前车头-1开始向上遍历，找到最远的可移动位置
+            // 新车头先一样
             let newHeadPos = carToMove.headMap;
-            for (let index = carToMove.headMap - 1; index >= mapH; index--) {
-                // 检查这个位置及后续位置是否都可用
-                let canMove = true;
-                for (let checkPos = index; checkPos < index + carToMove.type; checkPos++) {
-                    if (this.isValidMapPosition(map, checkPos, x) && map[checkPos][x] !== 0) {
-                        canMove = false;
-                        break;
-                    }
-                }
-                
-                if (canMove) {
-                    newHeadPos = index;
-                } else {
-                    break;
-                }
-            }
+
+            // 当前点击的汽车车头在哪里了，车尾在哪里了，是可知的
+            // 如果carToMove是当前点击汽车的sort＋1，那么carToMove新车头=max(当前点击汽车的车尾+1,mapH)
+            // 否则，sorti的carToMove的新车头=(sorti-1)的carToMove的车尾+1
             
-            // 如果没有找到更好的位置，至少确保不进入停车场
-            newHeadPos = Math.max(mapH, newHeadPos);
+            // 找到当前点击的汽车信息
+            const currentClickedCar = this.carParkingInfos.find(car => 
+                car.outerMap === outerMap && car.sort === currentSort
+            );
             
-            // 清除原位置
-            for (let i = carToMove.headMap; i <= carToMove.tailMap; i++) {
-                if (this.isValidMapPosition(map, i, x)) {
-                    map[i][x] = 0;
+            if (carToMove.sort === currentSort + 1) {
+                // 如果carToMove是当前点击汽车的sort+1，新车头=max(当前点击汽车的车尾+1,mapH)
+                if (currentClickedCar) {
+                    newHeadPos = Math.max(currentClickedCar.tailMap + 1, mapH);
+                }
+            } else {
+                // 否则，找到sort为(carToMove.sort-1)的车，新车头=该车的车尾+1
+                const prevCar = this.carParkingInfos.find(car => 
+                    car.outerMap === outerMap && car.sort === carToMove.sort - 1
+                );
+                if (prevCar) {
+                    newHeadPos = prevCar.tailMap + 1;
                 }
             }
             
             // 更新停放信息，找到车头，Ux的车尾总是=车头+长度-1。
             carToMove.headMap = newHeadPos;
             carToMove.tailMap = newHeadPos + carToMove.type - 1;
-            
-            // 设置新位置
-            for (let i = carToMove.headMap; i <= carToMove.tailMap; i++) {
-                if (this.isValidMapPosition(map, i, x)) {
-                    map[i][x] = carToMove.sort;
-                }
-            }
-            
+                 
             // 打印移动信息
             console.log(`相关车辆尽量向上移动：outerMap=${outerMap}, sort=${carToMove.sort}, 车头位置=${carToMove.headMap}，车尾位置=${carToMove.tailMap}`);
             
