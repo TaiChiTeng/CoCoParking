@@ -865,7 +865,6 @@ export class CarManager extends Component {
 
         // 检查汽车旧位置是否有部分在停车场外，只要旧车尾在停车场外，就需要处理
         const hasPartOutsidePark = oldHead + parkingInfo.type - 1 >= mapH;
-
         
         // 如果汽车有部分在停车场外，处理相同Ux中sort比当前车大的车一起向上移动
         if (hasPartOutsidePark) {
@@ -1184,11 +1183,14 @@ export class CarManager extends Component {
      */
     private moveSimilarCarsWithHigherSortUp(outerMap: string, currentSort: number, map: number[][], mapH: number): void {
         const carsToMove: CarParkingInfo[] = [];
+        console.log(`当前点击的汽车outerMap=${outerMap}, sort=${currentSort},准备找sort比它大的车`);
         
         // 找到相同outerMap且sort比当前车大的车
         for (const carInfo of this.carParkingInfos) {
+            console.log(`当前遍历的车：outerMap=${carInfo.outerMap}, sort=${carInfo.sort}`);
             if (carInfo.outerMap === outerMap && carInfo.sort > currentSort) {
                 carsToMove.push(carInfo);
+                console.log(`找到相同outerMap且sort比当前车大的车：outerMap=${outerMap}, sort=${carInfo.sort}`);
             }
         }
         
