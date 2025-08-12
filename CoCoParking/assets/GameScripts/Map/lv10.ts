@@ -19,11 +19,11 @@ export class Level10Map {
     public static CarData: {outerMap: string, sort: number, type: number, inPark: number}[] = [
         {outerMap: 'U0', sort: 0, type: 3, inPark: 0},
         {outerMap: 'U0', sort: 1, type: 3, inPark: 0},
-        {outerMap: 'L0', sort: 0, type: 3, inPark: 0},
-        {outerMap: 'L1', sort: 0, type: 1, inPark: 0},
-        {outerMap: 'L2', sort: 0, type: 1, inPark: 0},
-        {outerMap: 'L3', sort: 0, type: 1, inPark: 0},
-        {outerMap: 'L4', sort: 0, type: 1, inPark: 0},
-        {outerMap: 'L5', sort: 0, type: 2, inPark: 0}
+        {outerMap: 'R0', sort: 0, type: 3, inPark: 0},
+        {outerMap: 'R1', sort: 0, type: 1, inPark: 0},
+        {outerMap: 'R2', sort: 0, type: 1, inPark: 0},
+        {outerMap: 'R3', sort: 0, type: 1, inPark: 0},
+        {outerMap: 'R4', sort: 0, type: 1, inPark: 0},
+        {outerMap: 'R5', sort: 0, type: 2, inPark: 0}
     ];
 }

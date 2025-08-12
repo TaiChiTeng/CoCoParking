@@ -24,10 +24,10 @@ export class Level7Map {
         {outerMap: 'U3', sort: 0, type: 1, inPark: 0},
         {outerMap: 'U3', sort: 1, type: 2, inPark: 0},
         {outerMap: 'U4', sort: 0, type: 3, inPark: 0},
-        {outerMap: 'L0', sort: 0, type: 1, inPark: 0},
-        {outerMap: 'L0', sort: 1, type: 1, inPark: 0},
-        {outerMap: 'L0', sort: 2, type: 1, inPark: 0},
-        {outerMap: 'R1', sort: 1, type: 1, inPark: 0},
-        {outerMap: 'R2', sort: 2, type: 1, inPark: 0}
+        {outerMap: 'R0', sort: 0, type: 1, inPark: 0},
+        {outerMap: 'R0', sort: 1, type: 1, inPark: 0},
+        {outerMap: 'R0', sort: 2, type: 1, inPark: 0},
+        {outerMap: 'L1', sort: 1, type: 1, inPark: 0},
+        {outerMap: 'L2', sort: 2, type: 1, inPark: 0}
     ];
 }

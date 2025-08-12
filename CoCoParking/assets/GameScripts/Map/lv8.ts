@@ -21,10 +21,10 @@ export class Level8Map {
         {outerMap: 'U0', sort: 1, type: 2, inPark: 0},
         {outerMap: 'U2', sort: 0, type: 1, inPark: 0},
         {outerMap: 'U2', sort: 1, type: 2, inPark: 0},
-        {outerMap: 'R0', sort: 0, type: 3, inPark: 0},
-        {outerMap: 'R2', sort: 0, type: 1, inPark: 0},
-        {outerMap: 'R2', sort: 1, type: 1, inPark: 0},
-        {outerMap: 'R2', sort: 2, type: 1, inPark: 0},
-        {outerMap: 'R5', sort: 0, type: 3, inPark: 0}
+        {outerMap: 'L0', sort: 0, type: 3, inPark: 0},
+        {outerMap: 'L2', sort: 0, type: 1, inPark: 0},
+        {outerMap: 'L2', sort: 1, type: 1, inPark: 0},
+        {outerMap: 'L2', sort: 2, type: 1, inPark: 0},
+        {outerMap: 'L5', sort: 0, type: 3, inPark: 0}
     ];
 }
