@@ -834,6 +834,8 @@ export class CarManager extends Component {
 
     /**
      * 向上移动汽车
+     * * 要先存旧位置，再算出新位置并更新位置，然后更新地图数据，
+     * * 再根据旧位置是否在停车场外去找sort更大的汽车一起向上连带移动，再播放动画
      */
     private moveCarUp(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], x: number): void {
         const oldHead = parkingInfo.headMap;
@@ -860,7 +862,7 @@ export class CarManager extends Component {
         // 更新地图数据
         this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead + parkingInfo.type - 1, x, parkingInfo.type, false);
 
-        // 检查汽车旧位置是否有部分在停车场外，只要车尾在停车场外，就需要处理
+        // 检查汽车旧位置是否有部分在停车场外，只要旧车尾在停车场外，就需要处理
         const hasPartOutsidePark = oldHead + parkingInfo.type - 1 >= mapH;
 
         
@@ -915,6 +917,8 @@ export class CarManager extends Component {
 
     /**
      * Rx汽车向右移动
+     * * 要先存旧位置，再算出新位置并更新位置，然后更新地图数据，
+     * * 再根据旧位置是否在停车场外去找sort更大的汽车一起向右连带移动，再播放动画
      */
     private moveRxCarRight(carNode: Node, parkingInfo: CarParkingInfo, map: number[][], y: number): void {
         console.log(`=== 开始移动Rx汽车${parkingInfo.outerMap}sort${parkingInfo.sort} ===`);
@@ -931,14 +935,6 @@ export class CarManager extends Component {
             newHeadPos = index;
         }
         
-        // 检查汽车是否有部分在停车场外
-        const hasPartOutsidePark = parkingInfo.tailMap < 0;
-        
-        // 如果汽车有部分在停车场外，处理相同Rx中sort比当前车大的车一起向上移动
-        if (hasPartOutsidePark) {
-            this.moveRxSimilarCarsWithHigherSortRight(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
-        }
-
         // 更新停放信息，车头找到了，Rx的车尾总是=车头-长度+1。
         parkingInfo.headMap = newHeadPos;
         parkingInfo.tailMap = newHeadPos - parkingInfo.type + 1;
@@ -948,6 +944,14 @@ export class CarManager extends Component {
 
         // 更新地图数据
         this.updateMapForCarMovement(map, newHeadPos, parkingInfo.tailMap, oldHead, oldHead - parkingInfo.type + 1, y, parkingInfo.type, true);
+
+        // 检查汽车旧位置是否有部分在停车场外，只要车尾在停车场外，就需要处理
+        const hasPartOutsidePark = oldHead - parkingInfo.type + 1 < 0;
+        
+        // 如果汽车有部分在停车场外，处理相同Rx中sort比当前车大的车一起向上移动
+        if (hasPartOutsidePark) {
+            this.moveRxSimilarCarsWithHigherSortRight(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
+        }
 
         // 判断停车状态变化，车头是否在停车场左端外面，车尾是否在停车场左端里面
         const wasOutsidePark = oldHead < 0;
