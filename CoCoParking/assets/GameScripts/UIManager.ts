@@ -36,6 +36,9 @@ export class UIManager extends Component {
     @property(Label)
     public labLv: Label = null; // 关卡文本标签
 
+    @property(Label)
+    public labelParkNum: Label = null; // 停车数量标签
+
     // 显示主菜单，隐藏其他界面
     public showMainMenuOnly(): void {
         this.UIMainMenu.active = true;
@@ -129,6 +132,17 @@ export class UIManager extends Component {
                     }else {
                         console.error('Cannot find labLv under nodeLv');
                     }
+                    
+                    // 初始化停车数量标签
+                    const findlabelParkNum = nodeLv.getChildByName('labelParkNum');
+                    if(findlabelParkNum){
+                        this.labelParkNum = findlabelParkNum.getComponent(Label);
+                        if (!this.labelParkNum) {
+                            console.error('Cannot find Label component on labelParkNum');
+                        }
+                    }else {
+                        console.error('Cannot find labelParkNum under nodeLv');
+                    }
                 } else {
                     console.error('Cannot find nodeLv under AnimNode');
                 }
@@ -212,5 +226,20 @@ export class UIManager extends Component {
 
     public onConfirmCancelClick(): void {
         this.UIConfirm.active = false;
+    }
+
+    // 更新停车数量标签
+    public updateParkNumLabel(successfulParks: number, totalCars: number): void {
+        if (this.labelParkNum) {
+            this.labelParkNum.string = `已停好汽车数量：${successfulParks}/${totalCars}`;
+        } else {
+            console.warn('labelParkNum is not initialized, trying to find it again');
+            // 如果标签未初始化，尝试重新查找
+            this.initLevelLabel();
+            // 再次尝试更新
+            if (this.labelParkNum) {
+                this.labelParkNum.string = `已停好汽车数量：${successfulParks}/${totalCars}`;
+            }
+        }
     }
 }

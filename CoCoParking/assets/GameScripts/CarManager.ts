@@ -191,6 +191,7 @@ export class CarManager extends Component {
         }
 
         this.createCars(carData);
+        this.updateParkingUI(); // 初始化停车数量UI显示
     }
 
     /**
@@ -1647,6 +1648,9 @@ export class CarManager extends Component {
             console.log(`停车状态无变化(${parkingStatusChange})，成功停车数保持: ${this.successfulParks}`);
         }
         
+        // 更新UI显示
+        this.updateParkingUI();
+        
         // 检查是否通关
         this.checkLevelComplete();
     }
@@ -1745,5 +1749,15 @@ export class CarManager extends Component {
         this.positionStrategies.forEach(strategy => {
             strategy.reset();
         });
+    }
+
+    /**
+     * 更新停车数量UI显示
+     */
+    private updateParkingUI(): void {
+        if (this.uiManager) {
+            const totalCars = this.carParkingInfos.length;
+            this.uiManager.updateParkNumLabel(this.successfulParks, totalCars);
+        }
     }
 }
