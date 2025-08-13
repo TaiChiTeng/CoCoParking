@@ -873,16 +873,14 @@ export class CarManager extends Component {
 
         // 判断停车状态变化，车头是否在停车场底部外面，车尾是否在停车场底部里面
         const isNowInsidePark = parkingInfo.tailMap <= mapH;
-        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
         
         if (isNowInsidePark) {
-            parkingStatusChange = 'enter';
             parkingInfo.inPark = 1;
             console.log("汽车从停车场外完全进入停车场内");
         }
 
         // 播放动画
-        this.playCarMoveAnimation(carNode, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0), parkingStatusChange);
+        this.playCarMoveAnimation(carNode, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0));
     }
 
     /**
@@ -953,18 +951,15 @@ export class CarManager extends Component {
         }
 
         // 判断停车状态变化，车尾是否在停车场左端里面
- 
         const isNowInsidePark = parkingInfo.tailMap >= 0;
-        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
         
         if (isNowInsidePark) {
-            parkingStatusChange = 'enter';
             parkingInfo.inPark = 1;
             console.log("汽车从停车场外完全进入停车场内");
         }
         
         // 播放动画
-        this.playCarMoveAnimation(carNode, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), parkingStatusChange);
+        this.playCarMoveAnimation(carNode, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0));
     }
 
     /**
@@ -1025,7 +1020,7 @@ export class CarManager extends Component {
         
         // 播放动画
         const moveDistance = CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
-        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0), 'exit');
+        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0));
     }
 
     /**
@@ -1068,16 +1063,14 @@ export class CarManager extends Component {
 
         // 判断停车状态变化，车头是否在停车场右部外面，车尾是否在停车场右部里面
         const isNowInsidePark = parkingInfo.tailMap < mapW;
-        let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
         
         if (isNowInsidePark) {
-            parkingStatusChange = 'enter';
             parkingInfo.inPark = 1;
         }
         
         // 播放动画
         const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos);
-        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0), parkingStatusChange);
+        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0));
     }
 
     /**
@@ -1141,7 +1134,7 @@ export class CarManager extends Component {
         
         // 播放动画
         const moveDistance = CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
-        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0), 'exit');
+        this.playCarMoveAnimation(carNode, new Vec3(moveDistance, 0, 0));
     }
 
     /**
@@ -1173,7 +1166,7 @@ export class CarManager extends Component {
         
         // 播放动画
         const moveDistance = -CONSTANTS.CAR_POSITION_OFFSET * (parkingInfo.headMap - oldHead);
-        this.playCarMoveAnimation(carNode, new Vec3(0, moveDistance, 0), 'exit');
+        this.playCarMoveAnimation(carNode, new Vec3(0, moveDistance, 0));
     }
 
     /**
@@ -1235,7 +1228,7 @@ export class CarManager extends Component {
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
-                this.playCarMoveAnimation(carToMove.node, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(0, CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0));
             }
         }
     }
@@ -1288,7 +1281,7 @@ export class CarManager extends Component {
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
                 const moveDistance = carToMove.headMap - oldHead;
-                this.playCarMoveAnimation(carToMove.node, new Vec3(0, -CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(0, -CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0));
             }
             
             // 更新下一个车的位置，下一辆车的车头=当前车的车尾+1，即当前车车尾的下面一格
@@ -1353,7 +1346,7 @@ export class CarManager extends Component {
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
-                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0));
             }
         }
     }
@@ -1406,7 +1399,7 @@ export class CarManager extends Component {
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
                 const moveDistance = carToMove.headMap - oldHead;
-                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0));
             }
             
             // 更新下一个车的位置，Rx下一辆车的车头=当前车的车尾-1，即当前车车尾的左面一格
@@ -1470,7 +1463,7 @@ export class CarManager extends Component {
             
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
-                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(-CONSTANTS.CAR_POSITION_OFFSET * (oldHead - newHeadPos), 0, 0));
             }
         }
     }
@@ -1523,7 +1516,7 @@ export class CarManager extends Component {
             // 播放动画
             if (carToMove.node && carToMove.node.isValid) {
                 const moveDistance = carToMove.headMap - oldHead;
-                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0), 'none');
+                this.playCarMoveAnimation(carToMove.node, new Vec3(CONSTANTS.CAR_POSITION_OFFSET * moveDistance, 0, 0));
             }
             
             // 更新下一个车的位置，下一辆车的车头=当前车的车尾+1，即当前车车尾的右面一格
@@ -1605,12 +1598,12 @@ export class CarManager extends Component {
     /**
      * 播放汽车移动动画
      */
-    private playCarMoveAnimation(carNode: Node, targetOffset: Vec3, parkingStatusChange?: 'enter' | 'exit' | 'none'): void {
+    private playCarMoveAnimation(carNode: Node, targetOffset: Vec3): void {
         this.isAnimationPlaying = true;
         this.moveCarAnimation(carNode, targetOffset, this.carAnimDuration, () => {
             this.isAnimationPlaying = false;
-            // 动画播放完毕后根据停车状态更新计数
-            this.updateParkingCount(parkingStatusChange);
+            // 动画播放完毕后更新停车计数
+            this.updateParkingCount();
         });
     }
 
@@ -1632,21 +1625,12 @@ export class CarManager extends Component {
     }
 
     /**
-     * 根据停车状态更新计数
+     * 更新停车计数
      */
-    private updateParkingCount(parkingStatusChange?: 'enter' | 'exit' | 'none'): void {
-        console.log(`updateParkingCount被调用，参数: ${parkingStatusChange}`);
-        console.log(`当前成功停车数: ${this.successfulParks}`);
-        
-        if (parkingStatusChange === 'enter') {
-            this.successfulParks++;
-            console.log(`汽车进入停车场，成功停车计数增加到: ${this.successfulParks}`);
-        } else if (parkingStatusChange === 'exit') {
-            this.successfulParks = Math.max(0, this.successfulParks - 1);
-            console.log(`汽车撤出停车场，成功停车计数减少到: ${this.successfulParks}`);
-        } else {
-            console.log(`停车状态无变化(${parkingStatusChange})，成功停车数保持: ${this.successfulParks}`);
-        }
+    private updateParkingCount(): void {
+        // 统计所有inPark==1的汽车数量
+        this.successfulParks = this.carParkingInfos.filter(info => info.inPark === 1).length;
+        console.log(`updateParkingCount被调用，当前成功停车数: ${this.successfulParks}`);
         
         // 更新UI显示
         this.updateParkingUI();
