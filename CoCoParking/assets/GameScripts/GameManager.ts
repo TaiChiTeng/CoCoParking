@@ -159,18 +159,8 @@ export class GameManager extends Component {
 
     // 关卡完成时调用
     public onLevelClear(): void {
-        console.log('===== GameManager: 关卡完成，准备调用showLevelClearOnly =====');
-        
-        console.log('uiManager引用:', this.uiManager);
-        if (this.uiManager) {
-            console.log('准备调用UIManager.showLevelClearOnly()');
-            this.uiManager.showLevelClearOnly();
-            console.log('UIManager.showLevelClearOnly()调用完成');
-        } else {
-            console.error('ERROR: 无法获取UIManager引用');
-        }
-        
-        console.log('============================================');
+        // 将关卡完成时事件绑定到UIManager的对应方法
+        this.uiManager?.showLevelClearOnly();
     }
 
     update(deltaTime: number) {
