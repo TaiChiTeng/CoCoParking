@@ -872,11 +872,10 @@ export class CarManager extends Component {
         }
 
         // 判断停车状态变化，车头是否在停车场底部外面，车尾是否在停车场底部里面
-        const wasOutsidePark = oldHead >= mapH;
-        const isNowInsidePark = parkingInfo.tailMap < mapH;
+        const isNowInsidePark = parkingInfo.tailMap <= mapH;
         let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
         
-        if (wasOutsidePark && isNowInsidePark) {
+        if (isNowInsidePark) {
             parkingStatusChange = 'enter';
             parkingInfo.inPark = 1;
             console.log("汽车从停车场外完全进入停车场内");
@@ -953,12 +952,12 @@ export class CarManager extends Component {
             this.moveRxSimilarCarsWithHigherSortRight(parkingInfo.outerMap, parkingInfo.sort, map, mapW);
         }
 
-        // 判断停车状态变化，车头是否在停车场左端外面，车尾是否在停车场左端里面
-        const wasOutsidePark = oldHead < 0;
+        // 判断停车状态变化，车尾是否在停车场左端里面
+ 
         const isNowInsidePark = parkingInfo.tailMap >= 0;
         let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
         
-        if (wasOutsidePark && isNowInsidePark) {
+        if (isNowInsidePark) {
             parkingStatusChange = 'enter';
             parkingInfo.inPark = 1;
             console.log("汽车从停车场外完全进入停车场内");
@@ -1068,11 +1067,10 @@ export class CarManager extends Component {
         }
 
         // 判断停车状态变化，车头是否在停车场右部外面，车尾是否在停车场右部里面
-        const wasOutsidePark = oldHead >= mapW;
         const isNowInsidePark = parkingInfo.tailMap < mapW;
         let parkingStatusChange: 'enter' | 'exit' | 'none' = 'none';
         
-        if (wasOutsidePark && isNowInsidePark) {
+        if (isNowInsidePark) {
             parkingStatusChange = 'enter';
             parkingInfo.inPark = 1;
         }
