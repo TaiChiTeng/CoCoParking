@@ -18,6 +18,9 @@ export class GameManager extends Component {
     @property(Node)
     public mapManagerNode: Node = null; // MapManager所在节点
 
+    @property(Node)
+    public audioManagerNode: Node = null; // AudioManager所在节点
+
     private uiManager: UIManager = null;
     private carManager: CarManager = null;
     private mapManager: MapManager = null;
