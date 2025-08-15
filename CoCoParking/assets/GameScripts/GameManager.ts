@@ -1,13 +1,13 @@
-import { _decorator, Component, Node, AudioSource } from 'cc';
+import { _decorator, Component, Node } from 'cc';
 import { UIManager } from './UIManager';
 import { CarManager } from './CarManager';
 import { MapManager } from './MapManager';
+import { CarAudio } from './CarAudio';
+
 const { ccclass, property } = _decorator;
 
 @ccclass('GameManager')
 export class GameManager extends Component {
-    @property(AudioSource)
-    public audioSource: AudioSource = null;
 
     @property(Node)
     public uiManagerNode: Node = null; // UIManager所在节点
@@ -24,7 +24,6 @@ export class GameManager extends Component {
     private uiManager: UIManager = null;
     private carManager: CarManager = null;
     private mapManager: MapManager = null;
-    private isSoundOn: boolean = true;
     private currentLevel: number = 1; // 当前关卡
 
     start() {
@@ -138,9 +137,8 @@ export class GameManager extends Component {
     }
 
     public onSettingSoundToggle(): void {
-        this.isSoundOn = !this.isSoundOn;
-        if (this.audioSource) {
-            this.audioSource.volume = this.isSoundOn ? 1 : 0;
+        if (this.audioManagerNode) {
+            this.audioManagerNode.getComponent(CarAudio).onClickAudio();
         }
     }
 
