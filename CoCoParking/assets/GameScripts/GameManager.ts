@@ -3,6 +3,8 @@ import { UIManager } from './UIManager';
 import { CarManager } from './CarManager';
 import { MapManager } from './MapManager';
 import { CarAudio } from './CarAudio';
+import { LevelDataManager } from './LevelDataManager';
+
 
 const { ccclass, property } = _decorator;
 
@@ -21,9 +23,14 @@ export class GameManager extends Component {
     @property(Node)
     public audioManagerNode: Node = null; // AudioManager所在节点
 
+    @property(Node)
+    public levelDataManagerNode: Node = null; // LevelDataManager所在节点
+
     private uiManager: UIManager = null;
     private carManager: CarManager = null;
     private mapManager: MapManager = null;
+    private levelDataManager: LevelDataManager = null;
+
     private currentLevel: number = 1; // 当前关卡
 
     start() {
@@ -70,6 +77,17 @@ export class GameManager extends Component {
         } else {
             console.error('无法设置CarManager的UIManager引用：carManager或uiManager为null');
         }
+
+        // 获取LevelDataManager引用
+        if (this.levelDataManagerNode) {
+            this.levelDataManager = this.levelDataManagerNode.getComponent(LevelDataManager);
+            if (!this.levelDataManager) {
+                console.error('Cannot find LevelDataManager component on levelDataManagerNode');
+            }
+        } else {
+            console.error('levelDataManagerNode is not assigned in GameManager');
+        }
+
     }
 
     // 设置当前关卡
@@ -94,8 +112,21 @@ export class GameManager extends Component {
 
     // 主菜单按钮回调函数
     public onMainMenuToLevelClick(): void {
-        // 默认进入第一关
-        this.setCurrentLevel(1);
+        // 检测LevelDataManager是否存在
+        if (this.levelDataManager) {
+            // 从LevelDataManager获取最大关卡
+            const maxLevel = this.levelDataManager.maxLevel;
+            if (maxLevel > 0) {
+                // 进入最大关卡
+                this.setCurrentLevel(maxLevel);
+            } else {
+                // 没有记录的最大关卡，默认进入第一关
+                this.setCurrentLevel(1);
+            }
+        } else {
+            // 没有LevelDataManager，默认进入第一关
+            this.setCurrentLevel(1);
+        }
         this.uiManager?.showLevelOnly();
     }
 
@@ -126,6 +157,10 @@ export class GameManager extends Component {
             // 没有下一关时，设置为超出范围的关卡以显示"无限关卡"
             this.currentLevel = nextLevel;
             this.uiManager?.updateLevelLabel(nextLevel, this.mapManager?.getTotalLevels() || 0);
+        }
+        // 调用LevelDataManager记录新的最大关卡
+        if (this.levelDataManager) {
+            this.levelDataManager.levelCompleted(this.currentLevel);
         }
         this.uiManager?.showLevelOnly();
     }
