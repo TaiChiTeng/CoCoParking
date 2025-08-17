@@ -25,6 +25,6 @@ export class Level6Map {
         {outerMap: 'U4', sort: 0, type: 2, inPark: 0},
         {outerMap: 'U4', sort: 1, type: 3, inPark: 0},
         {outerMap: 'R3', sort: 0, type: 3, inPark: 0},
-        {outerMap: 'L2', sort: 0, type: 3, inPark: 0}
+        {outerMap: 'L1', sort: 0, type: 3, inPark: 0}
     ];
 }

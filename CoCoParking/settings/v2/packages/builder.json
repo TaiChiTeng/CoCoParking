@@ -25,10 +25,25 @@
               "isRemote": false,
               "compressionType": "merge_dep"
             },
-            "configMode": "fallback"
+            "configMode": "overwrite",
+            "overwriteSettings": {
+              "wechatgame": {
+                "compressionType": "subpackage"
+              }
+            }
           }
         }
       }
+    }
+  },
+  "splash-setting": {
+    "totalTime": 1000,
+    "logo": {
+      "type": "none"
+    },
+    "background": {
+      "type": "custom",
+      "image": "project://settings/Loading.png"
     }
   }
 }
