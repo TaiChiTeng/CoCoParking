@@ -37,7 +37,7 @@
     }
   },
   "splash-setting": {
-    "totalTime": 1000,
+    "totalTime": 2000,
     "logo": {
       "type": "none"
     },
