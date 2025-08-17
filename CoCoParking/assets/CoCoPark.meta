@@ -1,0 +1,24 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "3c8e1ef7-d9bf-431c-8261-e03b6ba65df8",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleFilterConfig": [
+      {
+        "range": "include",
+        "type": "url",
+        "patchOption": {
+          "patchType": "glob",
+          "value": "db://assets/CoCoPark/**/*"
+        },
+        "assets": [
+          ""
+        ]
+      }
+    ]
+  }
+}

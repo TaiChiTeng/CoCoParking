@@ -12,17 +12,17 @@ export class Level2Map {
         [0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0],
-        [0, 0, -1, -1, -1]
+        [0, 0, 0, 0, 0]
     ];
 
     // 汽车数据
     public static CarData: {outerMap: string, sort: number, type: number, inPark: number}[] = [
         {outerMap: 'U0', sort: 0, type: 3, inPark: 0}, // 在停车场外
-        {outerMap: 'U1', sort: 0, type: 2, inPark: 0}, // 在停车场外
-        {outerMap: 'U1', sort: 1, type: 1, inPark: 0}, // 在停车场外
-        {outerMap: 'R0', sort: 0, type: 2, inPark: 0}, // 在停车场外
-        {outerMap: 'R0', sort: 1, type: 1, inPark: 0}, // 在停车场外
-        {outerMap: 'R1', sort: 0, type: 3, inPark: 0}, // 在停车场外
-        {outerMap: 'R2', sort: 0, type: 3, inPark: 0}  // 在停车场外
+        {outerMap: 'U0', sort: 1, type: 3, inPark: 0}, // 在停车场外
+        {outerMap: 'U4', sort: 0, type: 3, inPark: 0}, // 在停车场外
+        {outerMap: 'U4', sort: 1, type: 2, inPark: 0}, // 在停车场外
+        {outerMap: 'R3', sort: 0, type: 3, inPark: 0}, // 在停车场外
+        {outerMap: 'R5', sort: 0, type: 3, inPark: 0}, // 在停车场外
+        {outerMap: 'L1', sort: 0, type: 2, inPark: 0}  // 在停车场外
     ];
 }
