@@ -1,4 +1,5 @@
 import { _decorator, Component, Node, Animation, Label } from 'cc';
+import { CarAudio } from './CarAudio';
 const { ccclass, property } = _decorator;
 
 @ccclass('UIManager')
@@ -38,6 +39,9 @@ export class UIManager extends Component {
 
     @property(Label)
     public labelParkNum: Label = null; // 停车数量标签
+
+    @property(Node)
+    public audioManagerNode: Node = null; // 音频管理器节点
 
     // 显示主菜单，隐藏其他界面
     public showMainMenuOnly(): void {
@@ -149,6 +153,13 @@ export class UIManager extends Component {
         if (this.animSetting) {
             this.animSetting.play('AnimShowSetting');
         }
+        // 更新音频按钮状态
+        if (this.audioManagerNode) {
+            const carAudio = this.audioManagerNode.getComponent(CarAudio);
+            if (carAudio) {
+                carAudio.updateAudioButtonState();
+            }
+        }
     }
 
     // 关卡界面打开设置界面，不关闭关卡界面
@@ -157,6 +168,13 @@ export class UIManager extends Component {
         // 播放设置界面动画
         if (this.animSetting) {
             this.animSetting.play('AnimShowSetting');
+        }
+        // 更新音频按钮状态
+        if (this.audioManagerNode) {
+            const carAudio = this.audioManagerNode.getComponent(CarAudio);
+            if (carAudio) {
+                carAudio.updateAudioButtonState();
+            }
         }
     }
 

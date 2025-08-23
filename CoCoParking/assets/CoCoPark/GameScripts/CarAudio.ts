@@ -1,4 +1,4 @@
-import { _decorator, AudioClip, AudioSource, Component, sys } from 'cc';
+import { _decorator, AudioClip, AudioSource, Component, Button, Sprite, sys } from 'cc';
 
 import { AudioMgr } from './AudioMgr';
 const { ccclass, property } = _decorator;
@@ -24,6 +24,9 @@ export class CarAudio extends Component {
 
     @property([CarSound])
     carSounds : CarSound[] = [];
+
+    @property(Button)
+    public btnAudio: Button = null;
 
     STORE_VERSION = 0;
     AUDIO_STORE_KEY = "audio"
@@ -69,7 +72,7 @@ export class CarAudio extends Component {
         }
         
         this.musicAudioSource.clip = music.clip;
-        this.musicAudioSource.volume = 0.5 * (this.audioConfig.isAudioOn ? 1.0 : 0.0);
+        this.musicAudioSource.volume = 0.4 * (this.audioConfig.isAudioOn ? 1.0 : 0.0);
         console.log("[CarAudio] 设置音量:", this.musicAudioSource.volume);
         this.musicAudioSource.play();
         console.log("[CarAudio] 调用play()方法完成");
@@ -150,6 +153,15 @@ export class CarAudio extends Component {
             console.log("[CarAudio] 声音已关闭");
         }
 
+        // 获取按钮的Sprite组件
+        const btnSprite = this.btnAudio.node.getComponent(Sprite);
+        if (!btnSprite) {
+            console.warn('[UISetting] 音频按钮未找到Sprite组件');
+            return;
+        }
+
+        this.updateAudioButtonState();
+
         this.saveConfig();
         
         // 立即应用音频开关状态到当前播放的背景音乐
@@ -162,6 +174,24 @@ export class CarAudio extends Component {
         }
     }
 
+    updateAudioButtonState() {
+        // 获取按钮的Sprite组件
+        const btnSprite = this.btnAudio.node.getComponent(Sprite);
+        if (!btnSprite) {
+            console.warn('[UISetting] 音频按钮未找到Sprite组件');
+            return;
+        }
+
+        // 根据音频开关状态设置按钮灰度
+        if (this.audioConfig.isAudioOn) {
+            btnSprite.grayscale = false;
+            console.log('[UISetting] 音频已开启，取消按钮灰度');
+        } else {
+            btnSprite.grayscale = true;
+            console.log('[UISetting] 音频已关闭，设置按钮灰度');
+        }
+    }
+
     start() {
         console.log("[CarAudio] start 开始初始化音频管理器");
         console.log("[CarAudio] bgMusics数组:", this.bgMusics);
@@ -171,8 +201,10 @@ export class CarAudio extends Component {
         console.log("[CarAudio] 创建AudioSource组件:", this.musicAudioSource);
         
         this.loadConfig();
-        console.log("[CarAudio] 配置加载完成，开始播放背景音乐");
-        this.loopMusic();
+        console.log("[CarAudio] 配置加载完成，检查音频开关状态，确认是否开始播放背景音乐");
+        if(this.audioConfig.isAudioOn){
+            this.loopMusic();
+        }
     }
 
 }
